@@ -1,4 +1,4 @@
-// Web Lab Robot — moteur avec module Météo (Open-Meteo)
+// Web Lab Robot — moteur avec modules Horloge, Météo (Open-Meteo) et RSS (rss2json)
 const consoleEl = document.getElementById('console');
 const statusEl = document.getElementById('status');
 
@@ -9,8 +9,10 @@ function log(msg) {
 
 // ---- Configuration des modules ----
 const CONFIG = {
-  // Ville par défaut pour la météo (modifie si besoin)
-  ville: 'Paris'
+  // Ville par défaut pour la météo
+  ville: 'Paris',
+  // Flux RSS par défaut (URL complète du flux)
+  rss: 'https://www.lemonde.fr/rss/une.xml'
 };
 
 // ---- Modules externes ----
@@ -75,7 +77,31 @@ const modules = {
   rss: {
     label: 'Flux RSS',
     run: async () => {
-      log('Module RSS : non connecté (à venir).');
+      try {
+        log('Chargement du flux : ' + CONFIG.rss);
+        // Service relais : convertit le RSS en JSON lisible par le navigateur
+        const url = 'https://api.rss2json.com/v1/api.json?rss_url='
+          + encodeURIComponent(CONFIG.rss);
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status !== 'ok') {
+          log('Flux inaccessible : ' + (data.message || 'erreur inconnue'));
+          return;
+        }
+
+        log('Flux : ' + (data.feed?.title || 'sans titre'));
+        const items = (data.items || []).slice(0, 5);
+        if (items.length === 0) {
+          log('Aucun article trouvé.');
+          return;
+        }
+        items.forEach((item, i) => {
+          log((i + 1) + '. ' + item.title);
+        });
+      } catch (e) {
+        log('Erreur RSS : ' + e.message);
+      }
     }
   }
 };
