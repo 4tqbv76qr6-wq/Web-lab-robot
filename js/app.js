@@ -1,17 +1,36 @@
-// Web Lab Robot — moteur avec modules Horloge, Météo (Open-Meteo) et RSS (rss2json)
+// Web Lab Robot — moteur avec modules Horloge, Météo, RSS (titres cliquables)
 const consoleEl = document.getElementById('console');
 const statusEl = document.getElementById('status');
 
+// Log texte classique
 function log(msg) {
   const time = new Date().toLocaleTimeString('fr-FR');
-  consoleEl.textContent += '[' + time + '] ' + msg + '\n';
+  const line = document.createElement('div');
+  line.textContent = '[' + time + '] ' + msg;
+  consoleEl.appendChild(line);
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+
+// Log avec lien cliquable
+function logLink(texte, url) {
+  const time = new Date().toLocaleTimeString('fr-FR');
+  const line = document.createElement('div');
+  const stamp = document.createElement('span');
+  stamp.textContent = '[' + time + '] ';
+  const link = document.createElement('a');
+  link.textContent = texte;
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  line.appendChild(stamp);
+  line.appendChild(link);
+  consoleEl.appendChild(line);
+  consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
 // ---- Configuration des modules ----
 const CONFIG = {
-  // Ville par défaut pour la météo
   ville: 'Paris',
-  // Flux RSS par défaut (URL complète du flux)
   rss: 'https://www.lemonde.fr/rss/une.xml'
 };
 
@@ -29,7 +48,6 @@ const modules = {
     run: async () => {
       try {
         log('Recherche de la ville : ' + CONFIG.ville + '...');
-        // 1. Géocodage : ville -> coordonnées
         const geoUrl = 'https://geocoding-api.open-meteo.com/v1/search?name='
           + encodeURIComponent(CONFIG.ville)
           + '&count=1&language=fr&format=json';
@@ -43,7 +61,6 @@ const modules = {
         const { latitude, longitude, name, country } = geoData.results[0];
         log('Ville trouvée : ' + name + ' (' + country + ')');
 
-        // 2. Météo : coordonnées -> conditions actuelles
         const meteoUrl = 'https://api.open-meteo.com/v1/forecast?latitude='
           + latitude + '&longitude=' + longitude
           + '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code'
@@ -52,7 +69,6 @@ const modules = {
         const meteoData = await meteoRes.json();
         const c = meteoData.current;
 
-        // 3. Traduction du code météo
         const codes = {
           0: 'Ciel dégagé', 1: 'Peu nuageux', 2: 'Partiellement nuageux', 3: 'Couvert',
           45: 'Brouillard', 48: 'Brouillard givrant',
@@ -79,7 +95,6 @@ const modules = {
     run: async () => {
       try {
         log('Chargement du flux : ' + CONFIG.rss);
-        // Service relais : convertit le RSS en JSON lisible par le navigateur
         const url = 'https://api.rss2json.com/v1/api.json?rss_url='
           + encodeURIComponent(CONFIG.rss);
         const res = await fetch(url);
@@ -97,7 +112,7 @@ const modules = {
           return;
         }
         items.forEach((item, i) => {
-          log((i + 1) + '. ' + item.title);
+          logLink((i + 1) + '. ' + item.title, item.link);
         });
       } catch (e) {
         log('Erreur RSS : ' + e.message);
