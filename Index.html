@@ -1,1 +1,39 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Lab Robot</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>🤖 Web Lab Robot</h1>
+    <p id="status">Initialisation...</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Connexions externes</h2>
+      <p>Ce robot est un laboratoire d'interconnexion avec des applications externes.</p>
+      <ul id="connections">
+        <li data-app="horloge">⏰ Horloge</li>
+        <li data-app="meteo">🌤️ Météo</li>
+        <li data-app="rss">📰 Flux RSS</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Console du robot</h2>
+      <div id="console"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Web Lab Robot — projet de laboratoire, sans données personnelles.</p>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
