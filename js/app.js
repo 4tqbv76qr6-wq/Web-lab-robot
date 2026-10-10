@@ -204,7 +204,7 @@ const modules = {
       } catch (e) { log('Erreur RSS : ' + e.message); }
     }
   },
-  dialogue: {
+    dialogue: {
     label: 'Dialogue',
     run: async (saisie) => {
       try {
@@ -219,37 +219,56 @@ const modules = {
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
 
-        // Sélection des faits pertinents (moteur style Labo 2, pas d'historique complet)
+        // Sélection des faits pertinents (moteur style Labo 2)
         const retenus = faitsPertinents(saisie, 5);
         if (retenus.length > 0) {
           log('🧠 Faits mobilisés : ' + retenus.length);
         }
 
-        // Contexte : consigne + faits retenus + question — léger et constant
         let contexteSysteme = CONFIG.systemPrompt;
         if (retenus.length > 0) {
           contexteSysteme += '\n\nConnaissances memorisees sur l utilisateur :\n'
             + retenus.map(f => '- (' + f.type + ') ' + f.text).join('\n');
         }
 
-        const res = await fetch('https://text.pollinations.ai/openai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: contexteSysteme },
-              { role: 'user', content: saisie }
-            ],
-            model: 'openai'
-          })
-        });
-        if (!res.ok) { log('Erreur LLM (HTTP ' + res.status + ')'); return; }
-        const brut = await res.text();
-        let reponse;
+        // Construction du contexte de dialogue (3 derniers échanges max)
+        const derniers = memoire.messages.slice(-6);
+        const messages = [
+          { role: 'system', content: contexteSysteme },
+          ...derniers
+        ];
+
+        // Tentative 1 : Puter.js (relais principal)
+        let reponse = '';
         try {
-          const data = JSON.parse(brut);
-          reponse = (data.choices?.[0]?.message?.content || '').trim();
-        } catch (e) { reponse = brut.trim(); }
+          if (typeof puter === 'undefined') throw new Error('Puter.js non chargé');
+          const rep = await puter.ai.chat(messages);
+          if (typeof rep === 'string') {
+            reponse = rep.trim();
+          } else if (rep && rep.message && rep.message.content) {
+            reponse = String(rep.message.content).trim();
+          } else if (rep && rep.text) {
+            reponse = String(rep.text).trim();
+          } else if (rep) {
+            reponse = String(rep).trim();
+          }
+        } catch (ePuter) {
+          log('⚠️ Puter indisponible (' + ePuter.message + '), essai Pollinations...');
+
+          // Tentative 2 : Pollinations en secours
+          const res = await fetch('https://text.pollinations.ai/openai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: messages, model: 'openai' })
+          });
+          if (!res.ok) { log('Erreur LLM (HTTP ' + res.status + ') — les deux relais ont échoué.'); return; }
+          const brut = await res.text();
+          try {
+            const data = JSON.parse(brut);
+            reponse = (data.choices?.[0]?.message?.content || '').trim();
+          } catch (err) { reponse = brut.trim(); }
+        }
+
         if (!reponse) { log('Réponse LLM vide.'); return; }
 
         memoire.messages.push({ role: 'assistant', content: reponse });
