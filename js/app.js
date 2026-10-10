@@ -63,7 +63,6 @@ function reinitialiserMemoire() {
   log('🧠 Mémoire effacée.');
 }
 
-// Export : télécharge la mémoire en fichier JSON
 function exporterMemoire() {
   try {
     const blob = new Blob([JSON.stringify(memoire.messages, null, 2)], { type: 'application/json' });
@@ -75,16 +74,15 @@ function exporterMemoire() {
     log('📤 Mémoire exportée (' + memoire.messages.length + ' messages).');
   } catch (e) {
     log('Erreur export : ' + e.message);
-  })
+  }
 }
 
-// Import : charge un fichier JSON de mémoire
 function importerMemoire(fichier) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      if (!Array.isArray(data)) { log('Fichier invalide : ce n\'est pas une mémoire.'); return; }
+      if (!Array.isArray(data)) { log('Fichier invalide : ce n est pas une mémoire.'); return; }
       if (memoire.messages.length > 0 && !confirm('Remplacer la mémoire actuelle par celle du fichier ?')) return;
       memoire.messages = data;
       sauvegarderMemoire();
@@ -144,7 +142,7 @@ const modules = {
     run: async () => {
       try {
         log('Chargement du flux : ' + CONFIG.rss);
-        const url = 'https://api.rss2json.com/v1/api/rss_url=' + encodeURIComponent(CONFIG.rss);
+        const url = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(CONFIG.rss);
         const data = await (await fetch(url)).json();
         if (data.status !== 'ok') { log('Flux inaccessible : ' + (data.message || 'erreur')); return; }
         log('Flux : ' + (data.feed?.title || 'sans titre'));
@@ -156,4 +154,76 @@ const modules = {
   },
   dialogue: {
     label: 'Dialogue',
-    run: asy
+    run: async (question) => {
+      try {
+        log('💬 Toi : ' + question);
+        memoire.messages.push({ role: 'user', content: question });
+
+        const contexte = CONFIG.systemPrompt + '\n'
+          + memoire.messages.map(m => (m.role === 'user' ? 'Utilisateur : ' : 'Robot : ') + m.content).join('\n')
+          + '\nRobot :';
+
+        const url = 'https://text.pollinations.ai/' + encodeURIComponent(contexte);
+        const res = await fetch(url);
+        if (!res.ok) { log('Erreur LLM (HTTP ' + res.status + ')'); return; }
+        const reponse = (await res.text()).trim();
+
+        memoire.messages.push({ role: 'assistant', content: reponse });
+        sauvegarderMemoire();
+        log('🤖 Robot : ' + reponse);
+      } catch (e) { log('Erreur dialogue : ' + e.message); }
+    }
+  }
+};
+
+// ---- Boutons modules ----
+document.querySelectorAll('#connections li').forEach(li => {
+  li.addEventListener('click', async () => {
+    const mod = modules[li.dataset.app];
+    if (mod) {
+      log('--- ' + mod.label + ' ---');
+      await mod.run();
+    }
+  });
+});
+
+// ---- Zone de dialogue ----
+const dialogueInput = document.getElementById('dialogue-input');
+const dialogueSend = document.getElementById('dialogue-send');
+
+async function envoyerDialogue() {
+  const q = dialogueInput.value.trim();
+  if (!q) return;
+  dialogueInput.value = '';
+  dialogueSend.disabled = true;
+  await modules.dialogue.run(q);
+  dialogueSend.disabled = false;
+  dialogueInput.focus();
+}
+
+dialogueSend.addEventListener('click', envoyerDialogue);
+dialogueInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') envoyerDialogue();
+});
+
+// ---- Mémoire : boutons ----
+const btnExport = document.getElementById('btn-export');
+const btnImport = document.getElementById('btn-import');
+const btnReset = document.getElementById('btn-reset');
+const fichierImport = document.getElementById('fichier-import');
+
+btnExport.addEventListener('click', exporterMemoire);
+btnReset.addEventListener('click', () => {
+  if (confirm('Effacer toute la mémoire du robot ?')) reinitialiserMemoire();
+});
+btnImport.addEventListener('click', () => fichierImport.click());
+fichierImport.addEventListener('change', () => {
+  if (fichierImport.files && fichierImport.files[0]) {
+    importerMemoire(fichierImport.files[0]);
+  }
+});
+
+// ---- Démarrage ----
+chargerMemoire();
+log('Robot démarré. Mémoire : ' + memoire.messages.length + ' messages enregistrés.');
+statusEl.textContent = 'Robot en ligne — ' + Object.keys(modules).length + ' modules';
