@@ -152,15 +152,17 @@ const modules = {
       } catch (e) { log('Erreur RSS : ' + e.message); }
     }
   },
-  dialogue: {
+    dialogue: {
     label: 'Dialogue',
     run: async (question) => {
       try {
         log('💬 Toi : ' + question);
         memoire.messages.push({ role: 'user', content: question });
 
+        // Contexte : consigne + 10 derniers messages seulement (limite d'URL)
+        const derniers = memoire.messages.slice(-10);
         const contexte = CONFIG.systemPrompt + '\n'
-          + memoire.messages.map(m => (m.role === 'user' ? 'Utilisateur : ' : 'Robot : ') + m.content).join('\n')
+          + derniers.map(m => (m.role === 'user' ? 'Utilisateur : ' : 'Robot : ') + m.content).join('\n')
           + '\nRobot :';
 
         const url = 'https://text.pollinations.ai/' + encodeURIComponent(contexte);
