@@ -1,5 +1,5 @@
 // Web Lab Robot — Horloge, Météo, RSS, Dialogue LLM
-// Mémoire persistante (localStorage) + export / import
+// Mémoire hybride : faits structurés (style Labo 2) + LLM comme formateur de réponse
 const consoleEl = document.getElementById('console');
 const statusEl = document.getElementById('status');
 
@@ -31,16 +31,18 @@ function logLink(texte, url) {
 const CONFIG = {
   ville: 'Paris',
   rss: 'https://www.lemonde.fr/rss/une.xml',
-  systemPrompt: 'Tu es Web Lab Robot, un robot de laboratoire web. Reponds en francais, de facon concise et sympathique, en 3 phrases maximum.',
+  systemPrompt: 'Tu es Web Lab Robot, un robot de laboratoire web. Reponds en francais, de facon concise et sympathique, en 3 phrases maximum. Tu disposes de connaissances memorisees sur l utilisateur, citees plus bas : sers-t en quand elles sont pertinentes.',
   cleMemoire: 'webLabRobot.memoire'
 };
 
-// ---- Mémoire persistante (localStorage) ----
-const memoire = { messages: [] };
+// ---- Mémoire persistante ----
+// faits : connaissances structurees (moteur style Labo 2)
+// messages : transcription des dialogues (archive)
+const memoire = { faits: [], messages: [] };
 
 function sauvegarderMemoire() {
   try {
-    localStorage.setItem(CONFIG.cleMemoire, JSON.stringify(memoire.messages));
+    localStorage.setItem(CONFIG.cleMemoire, JSON.stringify({ faits: memoire.faits, messages: memoire.messages }));
   } catch (e) {
     log('Erreur sauvegarde mémoire : ' + e.message);
   }
@@ -51,27 +53,73 @@ function chargerMemoire() {
     const brut = localStorage.getItem(CONFIG.cleMemoire);
     if (!brut) return;
     const data = JSON.parse(brut);
-    if (Array.isArray(data)) memoire.messages = data;
+    // Compatibilite : ancien format = tableau de messages seul
+    if (Array.isArray(data)) { memoire.messages = data; return; }
+    if (Array.isArray(data.faits)) memoire.faits = data.faits;
+    if (Array.isArray(data.messages)) memoire.messages = data.messages;
   } catch (e) {
     log('Mémoire locale illisible, on repart de zéro.');
   }
 }
 
 function reinitialiserMemoire() {
+  memoire.faits = [];
   memoire.messages = [];
   localStorage.removeItem(CONFIG.cleMemoire);
   log('🧠 Mémoire effacée.');
 }
 
+// ---- Normalisation (inspirée Labo 2 : minuscule, sans accent) ----
+function normaliser(texte) {
+  return texte.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .split(/\s+/).filter(m => m.length > 2);
+}
+
+// ---- Mémorisation sur instruction (€) ----
+function typerFait(texte) {
+  const t = texte.toLowerCase();
+  if (/(nom|prenom|m'appelle|je suis)\b/.test(t)) return 'identite';
+  if (/(habite|demeure|vis a|maison|larmor)/.test(t)) return 'lieu';
+  if (/(prefere|j'aime|j'aime pas|deteste)/.test(t)) return 'preference';
+  if (/(projet|labo|robot|travaille)/.test(t)) return 'contexte';
+  return 'fait';
+}
+
+function memoriser(texte) {
+  const f = { type: typerFait(texte), text: texte.trim(), date: new Date().toISOString().slice(0, 10) };
+  memoire.faits.push(f);
+  sauvegarderMemoire();
+  log('€ Mémorisé (' + f.type + ') : ' + f.text);
+  log('🧠 ' + memoire.faits.length + ' fait(s) en mémoire.');
+}
+
+// ---- Sélection des faits pertinents pour une question (recherche par mots-clés) ----
+function faitsPertinents(question, max) {
+  const motsQ = normaliser(question);
+  if (motsQ.length === 0) return memoire.faits.slice(-max);
+  const scores = memoire.faits.map(f => {
+    const motsF = new Set(normaliser(f.text + ' ' + f.type));
+    let s = 0;
+    motsQ.forEach(m => { if (motsF.has(m)) s++; });
+    return { f, s };
+  });
+  const retenus = scores.filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, max);
+  if (retenus.length === 0) return [];
+  return retenus.map(x => x.f);
+}
+
+// ---- Export / Import ----
 function exporterMemoire() {
   try {
-    const blob = new Blob([JSON.stringify(memoire.messages, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ faits: memoire.faits, messages: memoire.messages }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'memoire-web-lab-robot.json';
     a.click();
     URL.revokeObjectURL(a.href);
-    log('📤 Mémoire exportée (' + memoire.messages.length + ' messages).');
+    log('📤 Mémoire exportée (' + memoire.faits.length + ' faits, ' + memoire.messages.length + ' messages).');
   } catch (e) {
     log('Erreur export : ' + e.message);
   }
@@ -82,11 +130,15 @@ function importerMemoire(fichier) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      if (!Array.isArray(data)) { log('Fichier invalide : ce n est pas une mémoire.'); return; }
-      if (memoire.messages.length > 0 && !confirm('Remplacer la mémoire actuelle par celle du fichier ?')) return;
-      memoire.messages = data;
+      const nb = (memoire.faits.length + memoire.messages.length);
+      if (nb > 0 && !confirm('Remplacer la mémoire actuelle par celle du fichier ?')) return;
+      if (Array.isArray(data)) { memoire.messages = data; }
+      else {
+        memoire.faits = Array.isArray(data.faits) ? data.faits : [];
+        memoire.messages = Array.isArray(data.messages) ? data.messages : [];
+      }
       sauvegarderMemoire();
-      log('📥 Mémoire importée (' + data.length + ' messages).');
+      log('📥 Mémoire importée (' + memoire.faits.length + ' faits, ' + memoire.messages.length + ' messages).');
     } catch (e) {
       log('Erreur import : fichier illisible.');
     }
@@ -152,29 +204,53 @@ const modules = {
       } catch (e) { log('Erreur RSS : ' + e.message); }
     }
   },
-      dialogue: {
+  dialogue: {
     label: 'Dialogue',
-    run: async (question) => {
+    run: async (saisie) => {
       try {
-        log('💬 Toi : ' + question);
-        memoire.messages.push({ role: 'user', content: question });
+        // Commande € : mémorisation sur instruction (pas de LLM)
+        if (saisie.startsWith('€')) {
+          const f = saisie.slice(1).trim();
+          if (!f) { log('Usage : € suivi du fait à mémoriser.'); return; }
+          memoriser(f);
+          return;
+        }
 
-        // Requête POST standard : consigne système + 10 derniers messages
-        const messages = [
-          { role: 'system', content: CONFIG.systemPrompt },
-          ...memoire.messages.slice(-10)
-        ];
+        log('💬 Toi : ' + saisie);
+        memoire.messages.push({ role: 'user', content: saisie });
 
-        const res = await fetch('https://text.pollinations.ai/', {
+        // Sélection des faits pertinents (moteur style Labo 2, pas d'historique complet)
+        const retenus = faitsPertinents(saisie, 5);
+        if (retenus.length > 0) {
+          log('🧠 Faits mobilisés : ' + retenus.length);
+        }
+
+        // Contexte : consigne + faits retenus + question — léger et constant
+        let contexteSysteme = CONFIG.systemPrompt;
+        if (retenus.length > 0) {
+          contexteSysteme += '\n\nConnaissances memorisees sur l utilisateur :\n'
+            + retenus.map(f => '- (' + f.type + ') ' + f.text).join('\n');
+        }
+
+        const res = await fetch('https://text.pollinations.ai/openai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: messages,
+            messages: [
+              { role: 'system', content: contexteSysteme },
+              { role: 'user', content: saisie }
+            ],
             model: 'openai'
           })
         });
         if (!res.ok) { log('Erreur LLM (HTTP ' + res.status + ')'); return; }
-        const reponse = (await res.text()).trim();
+        const brut = await res.text();
+        let reponse;
+        try {
+          const data = JSON.parse(brut);
+          reponse = (data.choices?.[0]?.message?.content || '').trim();
+        } catch (e) { reponse = brut.trim(); }
+        if (!reponse) { log('Réponse LLM vide.'); return; }
 
         memoire.messages.push({ role: 'assistant', content: reponse });
         sauvegarderMemoire();
@@ -233,5 +309,5 @@ fichierImport.addEventListener('change', () => {
 
 // ---- Démarrage ----
 chargerMemoire();
-log('Robot démarré. Mémoire : ' + memoire.messages.length + ' messages enregistrés.');
+log('Robot démarré. Mémoire : ' + memoire.faits.length + ' fait(s), ' + memoire.messages.length + ' message(s).');
 statusEl.textContent = 'Robot en ligne — ' + Object.keys(modules).length + ' modules';
