@@ -152,21 +152,27 @@ const modules = {
       } catch (e) { log('Erreur RSS : ' + e.message); }
     }
   },
-    dialogue: {
+      dialogue: {
     label: 'Dialogue',
     run: async (question) => {
       try {
         log('💬 Toi : ' + question);
         memoire.messages.push({ role: 'user', content: question });
 
-        // Contexte : consigne + 10 derniers messages seulement (limite d'URL)
-        const derniers = memoire.messages.slice(-10);
-        const contexte = CONFIG.systemPrompt + '\n'
-          + derniers.map(m => (m.role === 'user' ? 'Utilisateur : ' : 'Robot : ') + m.content).join('\n')
-          + '\nRobot :';
+        // Requête POST standard : consigne système + 10 derniers messages
+        const messages = [
+          { role: 'system', content: CONFIG.systemPrompt },
+          ...memoire.messages.slice(-10)
+        ];
 
-        const url = 'https://text.pollinations.ai/' + encodeURIComponent(contexte);
-        const res = await fetch(url);
+        const res = await fetch('https://text.pollinations.ai/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: messages,
+            model: 'openai'
+          })
+        });
         if (!res.ok) { log('Erreur LLM (HTTP ' + res.status + ')'); return; }
         const reponse = (await res.text()).trim();
 
