@@ -1,4 +1,4 @@
-// Web Lab Robot — Horloge, Météo, RSS, Dialogue LLM (Pollinations, sans clé)
+// Web Lab Robot — Horloge, Météo, RSS, Dialogue LLM avec mémoire de session
 const consoleEl = document.getElementById('console');
 const statusEl = document.getElementById('status');
 
@@ -30,9 +30,13 @@ function logLink(texte, url) {
 const CONFIG = {
   ville: 'Paris',
   rss: 'https://www.lemonde.fr/rss/une.xml',
-  // Personnalité du robot pour le LLM
   systemPrompt: 'Tu es Web Lab Robot, un robot de laboratoire web. Reponds en francais, de facon concise et sympathique, en 3 phrases maximum.'
 };
+
+// ---- Mémoire de conversation (session en cours) ----
+const memoire = [
+  { role: 'system', content: CONFIG.systemPrompt }
+];
 
 // ---- Modules ----
 const modules = {
@@ -97,11 +101,22 @@ const modules = {
     run: async (question) => {
       try {
         log('💬 Toi : ' + question);
-        const url = 'https://text.pollinations.ai/' 
-          + encodeURIComponent(CONFIG.systemPrompt + ' Question : ' + question);
+
+        // Ajout de la question à la mémoire
+        memoire.push({ role: 'user', content: question });
+
+        // Construction du contexte : toutes les phares de la conversation
+        const contexte = memoire.map(m => (m.role === 'user' ? 'Utilisateur : ' : (m.role === 'assistant' ? 'Robot : ' : 'Consigne : ')) + m.content).join('\n')
+          + '\nRobot :';
+
+        const url = 'https://text.pollinations.ai/' + encodeURIComponent(contexte);
         const res = await fetch(url);
         if (!res.ok) { log('Erreur LLM (HTTP ' + res.status + ')'); return; }
         const reponse = (await res.text()).trim();
+
+        // Ajout de la réponse à la mémoire
+        memoire.push({ role: 'assistant', content: reponse });
+
         log('🤖 Robot : ' + reponse);
       } catch (e) { log('Erreur dialogue : ' + e.message); }
     }
