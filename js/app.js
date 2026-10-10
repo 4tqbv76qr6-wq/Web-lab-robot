@@ -73,7 +73,7 @@ function exporterMemoire() {
     a.click();
     URL.revokeObjectURL(a.href);
     log('📤 Mémoire exportée (' + memoire.messages.length + ' messages).');
-  } (catch (e) {
+  } catch (e) {
     log('Erreur export : ' + e.message);
   })
 }
