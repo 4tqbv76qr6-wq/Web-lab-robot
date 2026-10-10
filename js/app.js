@@ -1,4 +1,5 @@
-// Web Lab Robot — Horloge, Météo, RSS, Dialogue LLM avec mémoire de session
+// Web Lab Robot — Horloge, Météo, RSS, Dialogue LLM
+// Mémoire persistante (localStorage) + export / import
 const consoleEl = document.getElementById('console');
 const statusEl = document.getElementById('status');
 
@@ -30,13 +31,70 @@ function logLink(texte, url) {
 const CONFIG = {
   ville: 'Paris',
   rss: 'https://www.lemonde.fr/rss/une.xml',
-  systemPrompt: 'Tu es Web Lab Robot, un robot de laboratoire web. Reponds en francais, de facon concise et sympathique, en 3 phrases maximum.'
+  systemPrompt: 'Tu es Web Lab Robot, un robot de laboratoire web. Reponds en francais, de facon concise et sympathique, en 3 phrases maximum.',
+  cleMemoire: 'webLabRobot.memoire'
 };
 
-// ---- Mémoire de conversation (session en cours) ----
-const memoire = [
-  { role: 'system', content: CONFIG.systemPrompt }
-];
+// ---- Mémoire persistante (localStorage) ----
+const memoire = { messages: [] };
+
+function sauvegarderMemoire() {
+  try {
+    localStorage.setItem(CONFIG.cleMemoire, JSON.stringify(memoire.messages));
+  } catch (e) {
+    log('Erreur sauvegarde mémoire : ' + e.message);
+  }
+}
+
+function chargerMemoire() {
+  try {
+    const brut = localStorage.getItem(CONFIG.cleMemoire);
+    if (!brut) return;
+    const data = JSON.parse(brut);
+    if (Array.isArray(data)) memoire.messages = data;
+  } catch (e) {
+    log('Mémoire locale illisible, on repart de zéro.');
+  }
+}
+
+function reinitialiserMemoire() {
+  memoire.messages = [];
+  localStorage.removeItem(CONFIG.cleMemoire);
+  log('🧠 Mémoire effacée.');
+}
+
+// Export : télécharge la mémoire en fichier JSON
+function exporterMemoire() {
+  try {
+    const blob = new Blob([JSON.stringify(memoire.messages, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'memoire-web-lab-robot.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    log('📤 Mémoire exportée (' + memoire.messages.length + ' messages).');
+  } (catch (e) {
+    log('Erreur export : ' + e.message);
+  })
+}
+
+// Import : charge un fichier JSON de mémoire
+function importerMemoire(fichier) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data)) { log('Fichier invalide : ce n\'est pas une mémoire.'); return; }
+      if (memoire.messages.length > 0 && !confirm('Remplacer la mémoire actuelle par celle du fichier ?')) return;
+      memoire.messages = data;
+      sauvegarderMemoire();
+      log('📥 Mémoire importée (' + data.length + ' messages).');
+    } catch (e) {
+      log('Erreur import : fichier illisible.');
+    }
+  };
+  reader.readAsText(fichier);
+}
 
 // ---- Modules ----
 const modules = {
@@ -86,7 +144,7 @@ const modules = {
     run: async () => {
       try {
         log('Chargement du flux : ' + CONFIG.rss);
-        const url = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(CONFIG.rss);
+        const url = 'https://api.rss2json.com/v1/api/rss_url=' + encodeURIComponent(CONFIG.rss);
         const data = await (await fetch(url)).json();
         if (data.status !== 'ok') { log('Flux inaccessible : ' + (data.message || 'erreur')); return; }
         log('Flux : ' + (data.feed?.title || 'sans titre'));
@@ -98,60 +156,4 @@ const modules = {
   },
   dialogue: {
     label: 'Dialogue',
-    run: async (question) => {
-      try {
-        log('💬 Toi : ' + question);
-
-        // Ajout de la question à la mémoire
-        memoire.push({ role: 'user', content: question });
-
-        // Construction du contexte : toutes les phares de la conversation
-        const contexte = memoire.map(m => (m.role === 'user' ? 'Utilisateur : ' : (m.role === 'assistant' ? 'Robot : ' : 'Consigne : ')) + m.content).join('\n')
-          + '\nRobot :';
-
-        const url = 'https://text.pollinations.ai/' + encodeURIComponent(contexte);
-        const res = await fetch(url);
-        if (!res.ok) { log('Erreur LLM (HTTP ' + res.status + ')'); return; }
-        const reponse = (await res.text()).trim();
-
-        // Ajout de la réponse à la mémoire
-        memoire.push({ role: 'assistant', content: reponse });
-
-        log('🤖 Robot : ' + reponse);
-      } catch (e) { log('Erreur dialogue : ' + e.message); }
-    }
-  }
-};
-
-// ---- Boutons modules ----
-document.querySelectorAll('#connections li').forEach(li => {
-  li.addEventListener('click', async () => {
-    const mod = modules[li.dataset.app];
-    if (mod) {
-      log('--- ' + mod.label + ' ---');
-      await mod.run();
-    }
-  });
-});
-
-// ---- Zone de dialogue LLM ----
-const dialogueInput = document.getElementById('dialogue-input');
-const dialogueSend = document.getElementById('dialogue-send');
-
-async function envoyerDialogue() {
-  const q = dialogueInput.value.trim();
-  if (!q) return;
-  dialogueInput.value = '';
-  dialogueSend.disabled = true;
-  await modules.dialogue.run(q);
-  dialogueSend.disabled = false;
-  dialogueInput.focus();
-}
-
-dialogueSend.addEventListener('click', envoyerDialogue);
-dialogueInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') envoyerDialogue();
-});
-
-statusEl.textContent = 'Robot en ligne — ' + Object.keys(modules).length + ' modules';
-log('Robot démarré.');
+    run: asy
