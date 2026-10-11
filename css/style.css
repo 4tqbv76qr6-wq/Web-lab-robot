@@ -93,3 +93,7 @@ footer {
   max-height: 300px;
   overflow-y: auto;
 }
+/* ---- Visage du robot ---- */
+#visage { flex-shrink: 0; }
+#visage.transmet .lampe { }
+#visage-antenne { transition: fill 0.3s; }
