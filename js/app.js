@@ -27,6 +27,53 @@ function logLink(texte, url) {
   consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
+// ---- Visage du robot (états : neutre / pense / parle / erreur) ----
+const visage = {
+  el: document.getElementById('visage'),
+  oeils: [document.getElementById('visage-oeil-g'), document.getElementById('visage-oeil-d')],
+  bouche: document.getElementById('visage-bouche'),
+  antenne: document.getElementById('visage-antenne'),
+  joie: [document.getElementById('visage-joie-g'), document.getElementById('visage-joie-d')],
+  etat: 'neutre',
+  minuteur: null,
+
+  appliquer() {
+    const conf = {
+      neutre:  { couleur: '#4ad6a5', bouche: 'M 40 64 Q 50 70 60 64', joie: 0, antenne: '#4a9edd' },
+      pense:  { couleur: '#f5c451', bouche: 'M 42 66 Q 50 62 58 66', joie: 0, antenne: '#f5c451' },
+      parle:  { couleur: '#4ad6a5', bouche: 'M 38 62 Q 50 74 62 62', joie: 1, antenne: '#4ad6a5' },
+      erreur: { couleur: '#e8746a', bouche: 'M 40 68 Q 50 60 60 68', joie: 0, antenne: '#e8746a' }
+    }[this.etat];
+    this.oeils.forEach(o => o.setAttribute('fill', conf.couleur));
+    this.bouche.setAttribute('d', conf.bouche);
+    this.bouche.setAttribute('stroke', conf.couleur);
+    this.antenne.setAttribute('fill', conf.antenne);
+    this.joie.forEach(j => j.setAttribute('opacity', conf.joie));
+  },
+
+  set(etat, retourAuto) {
+    this.etat = etat;
+    this.appliquer();
+    clearTimeout(this.minuteur);
+    if (retourAuto) {
+      this.minuteur = setTimeout(() => { this.etat = 'neutre'; this.appliquer(); }, retourAuto);
+    }
+  },
+
+  clier() {  // clignement des yeux (seulement quand neutre)
+    if (this.etat !== 'neutre') return;
+    this.oeils.forEach(o => o.setAttribute('ry', 1));
+    setTimeout(() => {
+      if (this.etat === 'neutre') this.oeils.forEach(o => o.setAttribute('ry', 8));
+    }, 140);
+  },
+
+  init() {
+    setInterval(() => this.clier(), 3200 + Math.random() * 2600);
+  }
+};
+visage.init();
+
 // ---- Configuration ----
 const CONFIG = {
   ville: 'Paris',
@@ -215,7 +262,7 @@ const modules = {
           memoriser(f);
           return;
         }
-
+        visage.set('pense');
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
 
@@ -261,7 +308,7 @@ const modules = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ messages: messages, model: 'openai' })
           });
-          if (!res.ok) { log('Erreur LLM (HTTP ' + res.status + ') — les deux relais ont échoué.'); return; }
+                   if (!res.ok) { visage.set('erreur', 5000); log('Erreur LLM (HTTP ' + res.status + ') — les deux relais ont échoué.'); return; }
           const brut = await res.text();
           try {
             const data = JSON.parse(brut);
@@ -273,6 +320,7 @@ const modules = {
 
         memoire.messages.push({ role: 'assistant', content: reponse });
         sauvegarderMemoire();
+        visage.set('parle', 4000);
         log('🤖 Robot : ' + reponse);
       } catch (e) { log('Erreur dialogue : ' + e.message); }
     }
