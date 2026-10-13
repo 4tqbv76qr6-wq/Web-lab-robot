@@ -473,15 +473,15 @@ const modules = {
 };
 
 // ---- Boutons modules ----
-document.querySelectorAll('#connections li').forEach(li => {
-  li.addEventListener('click', async () => {
-    const mod = modules[li.dataset.app];
-    if (mod) {
-      log('--- ' + mod.label + ' ---');
-      await mod.run();
-    }
-  });
-});
+//document.querySelectorAll('#connections li').forEach(li => {
+  //li.addEventListener('click', async () => {
+    //const mod = modules[li.dataset.app];
+    //if (mod) {
+      //log('--- ' + mod.label + ' ---');
+      //await mod.run();
+    //}
+  //});
+//});
 
 // ---- Zone de dialogue ----
 const dialogueInput = document.getElementById('dialogue-input');
