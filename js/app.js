@@ -73,6 +73,54 @@ const visage = {
   }
 };
 visage.init();
+// ---- Visage réactif à la météo (transposition du Labo 2) ----
+// soleil → lunettes ; pluie → gouttes + parapluie ; nuages → nuages dérivants ; neige → flocons ; orage → éclair
+function appliquerMeteoVisage(code) {
+  const g = document.getElementById('visage-meteo');
+  if (!g) return;
+  let svg = '';
+  if (code === 0 || code === 1) {
+    // Soleil : lunettes de soleil sur les yeux
+    svg = '<g><rect x="28" y="44" width="18" height="11" rx="4" fill="#1e2a38" stroke="#f5c451" stroke-width="1.5"/>'
+        + '<rect x="54" y="44" width="18" height="11" rx="4" fill="#1e2a38" stroke="#f5c451" stroke-width="1.5"/>'
+        + '<line x1="46" y1="49" x2="54" y2="49" stroke="#f5c451" stroke-width="2"/></g>';
+  } else if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82)) {
+    // Pluie : gouttes qui tombent + parapluie
+    svg = '<g fill="#7db9ff" opacity="0.85">'
+        + [24, 40, 56, 72].map((x, i) =>
+            '<ellipse cx="' + x + '" cy="20" rx="1.8" ry="3.5">'
+          + '<animate attributeName="cy" values="12;90" dur="1.1s" begin="' + (i * 0.28) + 's" repeatCount="indefinite"/>'
+          + '<animate attributeName="opacity" values="0;0.9;0" dur="1.1s" begin="' + (i * 0.28) + 's" repeatCount="indefinite"/>'
+          + '</ellipse>').join('')
+        + '</g>'
+        + '<g><path d="M 8 22 Q 8 -6 50 -6 Q 92 -6 92 22 Z" fill="#4a6a9e"/>'
+        + '<line x1="50" y1="-6" x2="50" y2="12" stroke="#2f3d5c" stroke-width="2.5"/></g>';
+  } else if (code >= 71 && code <= 77) {
+    // Neige : flocons qui tombent
+    svg = '<g fill="#e6ecf7" opacity="0.9">'
+        + [24, 40, 56, 72].map((x, i) =>
+            '<circle cx="' + x + '" cy="20" r="2.5">'
+          + '<animate attributeName="cy" values="12;90" dur="2s" begin="' + (i * 0.5) + 's" repeatCount="indefinite"/>'
+          + '<animate attributeName="opacity" values="0;0.9;0" dur="2s" begin="' + (i * 0.5) + 's" repeatCount="indefinite"/>'
+          + '</circle>').join('')
+        + '</g>';
+  } else if (code >= 95) {
+    // Orage : éclair sur la joue + nuage sombre
+    svg = '<g><ellipse cx="50" cy="14" rx="20" ry="6" fill="#3a3f55">'
+        + '<animateTransform attributeName="transform" type="translate" values="0 0; 5 0; 0 0" dur="5s" repeatCount="indefinite"/></ellipse>'
+        + '<path d="M 50 6 L 44 18 L 49 18 L 45 28 L 54 16 L 49 16 Z" fill="#f5c451">'
+        + '<animate attributeName="opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/></path></g>';
+  } else {
+    // Nuages / couvert / brouillard : nuages qui dérivent
+    svg = '<g fill="#8a97ad" opacity="0.85">'
+        + '<g><ellipse cx="30" cy="14" rx="10" ry="4.5"/><ellipse cx="38" cy="11" rx="7" ry="3.5"/>'
+        + '<animateTransform attributeName="transform" type="translate" values="0 0; 8 0; 0 0" dur="7s" repeatCount="indefinite"/></g>'
+        + '<g><ellipse cx="68" cy="18" rx="9" ry="4"/><ellipse cx="75" cy="15.5" rx="6" ry="3"/>'
+        + '<animateTransform attributeName="transform" type="translate" values="0 0; -8 0; 0 0" dur="9s" repeatCount="indefinite"/></g>'
+        + '</g>';
+  }
+  g.innerHTML = svg;
+}
 
 // ---- Configuration ----
 const CONFIG = {
@@ -311,8 +359,11 @@ async function obtenirMeteo(ville) {
     81: 'averses', 82: 'averses fortes', 95: 'orage', 96: 'orage avec grêle',
     99: 'orage violent avec grêle'
   };
+
+  appliquerMeteoVisage(c.weather_code);
   return 'Données météo réelles à ' + name + ' : ' + (codes[c.weather_code] || 'conditions inconnues')
     + ', ' + c.temperature_2m + '°C, humidité ' + c.relative_humidity_2m + '%, vent ' + c.wind_speed_10m + ' km/h.';
+
 }
 
 // ---- Modules ----
@@ -525,3 +576,11 @@ afficherMemoire();
 log('Robot démarré. Mémoire : ' + memoire.faits.length + ' fait(s), ' + memoire.messages.length + ' message(s).');
 
 statusEl.textContent = 'Robot en ligne — ' + Object.keys(modules).length + ' modules';
+
+// Visage météo au démarrage (ville du fait lieu si mémorisée, sinon CONFIG.ville)
+(async () => {
+  try {
+    const fLieu = memoire.faits.filter(f => f.type === 'lieu').pop();
+    await obtenirMeteo(fLieu ? fLieu.text : CONFIG.ville);
+  } catch (e) { /* visage par défaut */ }
+})();
