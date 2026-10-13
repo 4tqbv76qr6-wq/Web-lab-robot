@@ -18,12 +18,19 @@ body {
 
 header {
   padding: 1.5rem;
-  text-align: center;
   border-bottom: 1px solid #2a3550;
 }
 
-header h1 { font-size: 1.6rem; }
-#status { color: var(--accent); font-size: 0.9rem; margin-top: 0.5rem; }
+.entete-ligne {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.entete-ligne h1 { font-size: 1.6rem; }
+.entete-ligne #status { color: var(--accent); font-size: 0.9rem; margin-top: 0.25rem; }
 
 main {
   flex: 1;
