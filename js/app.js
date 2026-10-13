@@ -141,6 +141,37 @@ function memoriser(texte) {
   log('€ Mémorisé (' + f.type + ') : ' + f.text);
   log('🧠 ' + memoire.faits.length + ' fait(s) en mémoire.');
 }
+// ---- Apprentissage automatique : extraction de faits par règles ----
+function extraireFaits(saisie) {
+  const regles = [
+    { type: 'identite',   motif: /je\s+m['’ ]appelle\s+([^.!?]+)/i },
+    { type: 'identite',   motif: /mon\s+(?:nom|pr[eé]nom)\s+est\s+([^.!?]+)/i },
+    { type: 'lieu',       motif: /j['’ ]habite\s+(?:à|a|en|dans)?\s*([^.!?]+)/i },
+    { type: 'lieu',       motif: /je\s+(?:vis|demeure)\s+(?:à|a|en)?\s*([^.!?]+)/i },
+    { type: 'preference', motif: /j['’ ]aime\s+(?:bien\s+)?pas\s+([^.!?]+)/i, negatif: true },
+    { type: 'preference', motif: /je\s+(?:déteste|deteste)\s+([^.!?]+)/i, negatif: true },
+    { type: 'preference', motif: /j['’ ]aime\s+(?:bien\s+)?([^.!?]+)/i },
+    { type: 'preference', motif: /je\s+pr[eé]f[eè]re\s+([^.!?]+)/i },
+    { type: 'contexte',   motif: /je\s+travaille\s+(?:sur|chez|dans)?\s*([^.!?]+)/i },
+    { type: 'contexte',   motif: /mon\s+projet\s+(?:est\s+)?([^.!?]+)/i }
+  ];
+  regles.forEach(r => {
+    const m = saisie.match(r.motif);
+    if (!m) return;
+    const valeur = m[1].trim().replace(/\s+/g, ' ');
+    if (!valeur || valeur.length < 2) return;
+    const texte = r.negatif
+      ? 'n\u2019aime pas ' + valeur
+      : valeur;
+    // Anti-doublon : ne pas re-mémoriser un fait identique
+    const existe = memoire.faits.some(f => f.text.toLowerCase() === texte.toLowerCase());
+    if (existe) return;
+    memoire.faits.push({ type: r.type, text: texte, date: new Date().toISOString().slice(0, 10) });
+    sauvegarderMemoire();
+    log('🔎 Appris automatiquement (' + r.type + ') : ' + texte);
+  });
+}
+
 
 // ---- Sélection des faits pertinents pour une question (recherche par mots-clés) ----
 function faitsPertinents(question, max) {
@@ -263,6 +294,8 @@ const modules = {
           return;
         }
         visage.set('pense');
+        // Apprentissage automatique : repérer les infos durables
+        extraireFaits(saisie);
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
 
