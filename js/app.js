@@ -140,6 +140,7 @@ function memoriser(texte) {
   sauvegarderMemoire();
   log('€ Mémorisé (' + f.type + ') : ' + f.text);
   log('🧠 ' + memoire.faits.length + ' fait(s) en mémoire.');
+    afficherMemoire();
 }
 // ---- Apprentissage automatique : extraction de faits par règles ----
 function extraireFaits(saisie) {
@@ -169,8 +170,62 @@ function extraireFaits(saisie) {
     memoire.faits.push({ type: r.type, text: texte, date: new Date().toISOString().slice(0, 10) });
     sauvegarderMemoire();
     log('🔎 Appris automatiquement (' + r.type + ') : ' + texte);
+     afficherMemoire();
   });
 }
+
+// ---- Visualisation de la mémoire ----
+const memoireListe = document.getElementById('memoire-liste');
+
+function afficherMemoire() {
+  memoireListe.innerHTML = '';
+  const info = document.getElementById('memoire-info');
+  if (memoire.faits.length === 0) {
+    info.textContent = 'Aucun fait mémorisé pour l\'instant.';
+    const vide = document.createElement('div');
+    vide.className = 'vide';
+    vide.textContent = 'Dis par exemple : « je m\'appelle Jean-Louis » ou utilise la commande €';
+    memoireListe.appendChild(vide);
+    return;
+  }
+  info.textContent = memoire.faits.length + ' fait(s) mémorisé(s) — cliquer sur ✖ pour supprimer un fait.';
+  memoire.faits.forEach((f, i) => {
+    const ligne = document.createElement('div');
+    ligne.className = 'fait';
+
+    const badge = document.createElement('span');
+    badge.className = 'badge ' + f.type;
+    badge.textContent = f.type;
+
+    const texte = document.createElement('span');
+    texte.className = 'texte';
+    texte.textContent = f.text;
+
+    const date = document.createElement('span');
+    date.className = 'date';
+    date.textContent = f.date;
+
+    const suppr = document.createElement('button');
+    suppr.className = 'suppr';
+    suppr.textContent = '✖';
+    suppr.title = 'Supprimer ce fait';
+    suppr.addEventListener('click', () => {
+      if (!confirm('Supprimer ce fait : « ' + f.text + ' » ?')) return;
+      memoire.faits.splice(i, 1);
+      sauvegarderMemoire();
+      afficherMemoire();
+      log('🗑️ Fait supprimé : ' + f.text);
+    });
+
+    ligne.appendChild(badge);
+    ligne.appendChild(texte);
+    ligne.appendChild(date);
+    ligne.appendChild(suppr);
+    memoireListe.appendChild(ligne);
+  });
+}
+
+
 
 
 // ---- Sélection des faits pertinents pour une question (recherche par mots-clés) ----
@@ -409,5 +464,7 @@ fichierImport.addEventListener('change', () => {
 
 // ---- Démarrage ----
 chargerMemoire();
+afficherMemoire();
 log('Robot démarré. Mémoire : ' + memoire.faits.length + ' fait(s), ' + memoire.messages.length + ' message(s).');
+
 statusEl.textContent = 'Robot en ligne — ' + Object.keys(modules).length + ' modules';
