@@ -104,3 +104,47 @@ footer {
 #visage { flex-shrink: 0; }
 #visage.transmet .lampe { }
 #visage-antenne { transition: fill 0.3s; }
+
+/* ---- Visualisation mémoire ---- */
+#memoire-liste { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+
+.fait {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #232e46;
+  border: 1px solid #2f3d5c;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.fait .badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fait .badge.identite   { background: #2a4d3e; color: #4ad6a5; }
+.fait .badge.lieu       { background: #2a3d55; color: #7db9ff; }
+.fait .badge.preference { background: #4d2a4e; color: #e08ad0; }
+.fait .badge.contexte   { background: #4d3d2a; color: #f5c451; }
+.fait .badge.fait       { background: #3a3a4d; color: #aab; }
+
+.fait .texte { flex: 1; }
+.fait .date { color: #7a8aa3; font-size: 0.75rem; flex-shrink: 0; }
+.fait .suppr {
+  background: none;
+  border: none;
+  color: #e8746a;
+  cursor: pointer;
+  font-size: 1rem;
+  flex-shrink: 0;
+  padding: 0 0.25rem;
+}
+.fait .suppr:hover { color: #ff9a8d; }
+
+#memoire-liste .vide { color: #7a8aa3; font-size: 0.85rem; font-style: italic; }
