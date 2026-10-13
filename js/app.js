@@ -232,10 +232,21 @@ function afficherMemoire() {
 function faitsPertinents(question, max) {
   const motsQ = normaliser(question);
   if (motsQ.length === 0) return memoire.faits.slice(-max);
+
+  // Detection du type vise par la question (ex : « comment je m'appelle ? » → identite)
+  const q = motsQ.join(' ');
+  const typesVises = [];
+  if (/(appelle|nom|prenom|qui suis)/.test(q)) typesVises.push('identite');
+  if (/(habite|demeure|ville|vis)/.test(q)) typesVises.push('lieu');
+  if (/(aime|prefere|deteste|adore|gouts?)/.test(q)) typesVises.push('preference');
+  if (/(projet|travaille|labo|contexte)/.test(q)) typesVises.push('contexte');
+
   const scores = memoire.faits.map(f => {
     const motsF = new Set(normaliser(f.text + ' ' + f.type));
     let s = 0;
     motsQ.forEach(m => { if (motsF.has(m)) s++; });
+    // Bonus : le fait appartient au type vise par la question
+    if (typesVises.includes(f.type)) s += 2;
     return { f, s };
   });
   const retenus = scores.filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, max);
