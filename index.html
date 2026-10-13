@@ -11,8 +11,7 @@
 <header>
   <div class="entete-ligne">
     <svg id="visage" viewBox="0 0 100 100" width="120" height="120" aria-label="Visage du robot">
-            <!-- Accessoires météo (dessinés par le JS) -->
-      <g id="visage-meteo"></g>
+            
       <!-- Antenne -->
       <line x1="50" y1="14" x2="50" y2="24" stroke="#4a9edd" stroke-width="3"/>
       <circle id="visage-antenne" cx="50" cy="12" r="4" fill="#4a9edd"/>
@@ -29,6 +28,11 @@
       <!-- Joues (visibles en joie) -->
       <circle id="visage-joie-g" cx="30" cy="60" r="3" fill="#e8746a" opacity="0"/>
       <circle id="visage-joie-d" cx="70" cy="60" r="3" fill="#e8746a" opacity="0"/>
+      <!-- Joues (visages en joie) -->
+      <circle id="visage-joie-g" cx="30" cy="60" r="3" fill="#e8746a" opacity="0"/>
+      <circle id="visage-joie-d" cx="70" cy="60" r="3" fill="#e8746a" opacity="0"/>
+      <!-- Accessoires météo : en DERNIER pour passer DEVANT la tête -->
+      <g id="visage-meteo"></g>
     </svg>
     <div class="entete-texte">
       <h1>🤖 Web Lab Robot</h1>
