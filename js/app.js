@@ -373,7 +373,7 @@ const modules = {
       } catch (e) { log('Erreur RSS : ' + e.message); }
     }
   },
-    dialogue: {
+      dialogue: {
     label: 'Dialogue',
     run: async (saisie) => {
       try {
@@ -384,12 +384,14 @@ const modules = {
           memoriser(f);
           return;
         }
+
         visage.set('pense');
         // Apprentissage automatique : repérer les infos durables
         extraireFaits(saisie);
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
-                // Interconnexion météo : la question porte sur le temps → données réelles
+
+        // Interconnexion météo : la question porte sur le temps → données réelles
         let contexteMeteo = '';
         if (/\b(m[eé]t[eé]o|temps|temp[eé]rature|pleuvoir|pleut|soleil|il fait)\b/i.test(saisie)) {
           let ville = (saisie.match(/\b(?:à|a|sur|pour)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\-' ]*)/i) || [])[1];
@@ -404,22 +406,21 @@ const modules = {
             if (m) { contexteMeteo = m; log('🌤️ Météo récupérée pour : ' + ville); }
           } catch (e) { log('Météo indisponible : ' + e.message); }
         }
-        
 
         // Sélection des faits pertinents (moteur style Labo 2)
         const retenus = faitsPertinents(saisie, 5);
         if (retenus.length > 0) {
           log('🧠 Faits mobilisés : ' + retenus.length);
         }
-        if (contexteMeteo) {
-          contexteSysteme += '\n\n' + contexteMeteo + ' Sers-toi de ces données réelles et actuelles pour répondre.';
-        }
-        
 
+        // Construction du contexte système (faits + météo)
         let contexteSysteme = CONFIG.systemPrompt;
         if (retenus.length > 0) {
           contexteSysteme += '\n\nConnaissances memorisees sur l utilisateur :\n'
             + retenus.map(f => '- (' + f.type + ') ' + f.text).join('\n');
+        }
+        if (contexteMeteo) {
+          contexteSysteme += '\n\n' + contexteMeteo + ' Sers-toi de ces données réelles et actuelles pour répondre.';
         }
 
         // Construction du contexte de dialogue (3 derniers échanges max)
@@ -452,7 +453,7 @@ const modules = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ messages: messages, model: 'openai' })
           });
-                   if (!res.ok) { visage.set('erreur', 5000); log('Erreur LLM (HTTP ' + res.status + ') — les deux relais ont échoué.'); return; }
+          if (!res.ok) { visage.set('erreur', 5000); log('Erreur LLM (HTTP ' + res.status + ') — les deux relais ont échoué.'); return; }
           const brut = await res.text();
           try {
             const data = JSON.parse(brut);
