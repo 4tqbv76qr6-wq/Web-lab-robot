@@ -290,6 +290,31 @@ function importerMemoire(fichier) {
   reader.readAsText(fichier);
 }
 
+// ---- Météo pour le dialogue (retourne un texte injectable dans le contexte LLM) ----
+async function obtenirMeteo(ville) {
+  const geoUrl = 'https://geocoding-api.open-meteo.com/v1/search?name='
+    + encodeURIComponent(ville) + '&count=1&language=fr&format=json';
+  const geoData = await (await fetch(geoUrl)).json();
+  if (!geoData.results || geoData.results.length === 0) return null;
+  const { latitude, longitude, name } = geoData.results[0];
+
+  const meteoUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + latitude
+    + '&longitude=' + longitude
+    + '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code'
+    + '&timezone=auto';
+  const c = (await (await fetch(meteoUrl)).json()).current;
+  const codes = {
+    0: 'ciel dégagé', 1: 'peu nuageux', 2: 'partiellement nuageux', 3: 'couvert',
+    45: 'brouillard', 48: 'brouillard givrant', 51: 'bruine légère', 53: 'bruine',
+    55: 'bruine forte', 61: 'pluie légère', 63: 'pluie', 65: 'pluie forte',
+    71: 'neige légère', 73: 'neige', 75: 'neige forte', 80: 'averses légères',
+    81: 'averses', 82: 'averses fortes', 95: 'orage', 96: 'orage avec grêle',
+    99: 'orage violent avec grêle'
+  };
+  return 'Données météo réelles à ' + name + ' : ' + (codes[c.weather_code] || 'conditions inconnues')
+    + ', ' + c.temperature_2m + '°C, humidité ' + c.relative_humidity_2m + '%, vent ' + c.wind_speed_10m + ' km/h.';
+}
+
 // ---- Modules ----
 const modules = {
   horloge: {
@@ -362,6 +387,21 @@ const modules = {
         visage.set('pense');
         // Apprentissage automatique : repérer les infos durables
         extraireFaits(saisie);
+                // Interconnexion météo : la question porte sur le temps → données réelles
+        let contexteMeteo = '';
+        if (/\b(m[eé]t[eé]o|temps|temp[eé]rature|pleuvoir|pleut|soleil|il fait)\b/i.test(saisie)) {
+          let ville = (saisie.match(/\b(?:à|a|sur|pour)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\-' ]*)/i) || [])[1];
+          if (ville) ville = ville.trim().split(/\s+/).slice(0, 3).join(' ');
+          if (!ville) {
+            const fLieu = memoire.faits.filter(f => f.type === 'lieu').pop();
+            if (fLieu) ville = fLieu.text;
+          }
+          if (!ville) ville = CONFIG.ville;
+          try {
+            const m = await obtenirMeteo(ville);
+            if (m) { contexteMeteo = m; log('🌤️ Météo récupérée pour : ' + ville); }
+          } catch (e) { log('Météo indisponible : ' + e.message); }
+        }
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
 
@@ -370,6 +410,10 @@ const modules = {
         if (retenus.length > 0) {
           log('🧠 Faits mobilisés : ' + retenus.length);
         }
+        if (contexteMeteo) {
+          contexteSysteme += '\n\n' + contexteMeteo + ' Sers-toi de ces données réelles et actuelles pour répondre.';
+        }
+        
 
         let contexteSysteme = CONFIG.systemPrompt;
         if (retenus.length > 0) {
