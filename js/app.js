@@ -387,6 +387,8 @@ const modules = {
         visage.set('pense');
         // Apprentissage automatique : repérer les infos durables
         extraireFaits(saisie);
+        log('💬 Toi : ' + saisie);
+        memoire.messages.push({ role: 'user', content: saisie });
                 // Interconnexion météo : la question porte sur le temps → données réelles
         let contexteMeteo = '';
         if (/\b(m[eé]t[eé]o|temps|temp[eé]rature|pleuvoir|pleut|soleil|il fait)\b/i.test(saisie)) {
@@ -402,8 +404,7 @@ const modules = {
             if (m) { contexteMeteo = m; log('🌤️ Météo récupérée pour : ' + ville); }
           } catch (e) { log('Météo indisponible : ' + e.message); }
         }
-        log('💬 Toi : ' + saisie);
-        memoire.messages.push({ role: 'user', content: saisie });
+        
 
         // Sélection des faits pertinents (moteur style Labo 2)
         const retenus = faitsPertinents(saisie, 5);
