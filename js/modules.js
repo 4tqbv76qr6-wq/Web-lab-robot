@@ -106,6 +106,12 @@ const modules = {
         if (contexteMeteo) {
           contexteSysteme += '\n\n' + contexteMeteo + ' Sers-toi de ces données réelles et actuelles pour répondre.';
         }
+// ⚙️ Date et heure réelles injectées (le LLM n'a pas d'horloge)
+const maintenant = new Date();
+const dateHeure = maintenant.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  + ', ' + maintenant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+contexteSysteme += '\nNous sommes le ' + dateHeure + '.';
+
 
         // Construction du contexte de dialogue (3 derniers échanges max)
         const derniers = memoire.messages.slice(-6);
