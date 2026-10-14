@@ -80,10 +80,39 @@ function appliquerMeteoVisage(code) {
   if (!g) return;
   let svg = '';
   if (code === 0 || code === 1) {
-    // Soleil : lunettes de soleil sur les yeux
-    svg = '<g><rect x="28" y="44" width="18" height="11" rx="4" fill="#1e2a38" stroke="#f5c451" stroke-width="1.5"/>'
+
+    // Soleil : disque scintillant en haut à droite + lunettes de soleil sur les yeux
+    svg = '<g>'
+        // Soleil : halo qui pulse
+        + '<circle cx="84" cy="14" r="9" fill="#f5c451" opacity="0.35">'
+        + '<animate attributeName="r" values="9;12;9" dur="2.5s" repeatCount="indefinite"/>'
+        + '<animate attributeName="opacity" values="0.35;0.15;0.35" dur="2.5s" repeatCount="indefinite"/></circle>'
+        // Rayons qui scintillent en rotation lente
+        + '<g stroke="#f5c451" stroke-width="2" stroke-linecap="round" opacity="0.9">'
+        + '<line x1="84" y1="1" x2="84" y2="5"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" repeatCount="indefinite"/></line>'
+        + '<line x1="84" y1="23" x2="84" y2="27"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" begin="0.4s" repeatCount="indefinite"/></line>'
+        + '<line x1="71" y1="14" x2="75" y2="14"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" begin="0.8s" repeatCount="indefinite"/></line>'
+        + '<line x1="93" y1="14" x2="97" y2="14"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" begin="1.2s" repeatCount="indefinite"/></line>'
+        + '<line x1="75" y1="5" x2="78" y2="8"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" begin="0.2s" repeatCount="indefinite"/></line>'
+        + '<line x1="90" y1="20" x2="93" y2="23"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" begin="0.6s" repeatCount="indefinite"/></line>'
+        + '<line x1="93" y1="5" x2="90" y2="8"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" begin="1s" repeatCount="indefinite"/></line>'
+        + '<line x1="78" y1="20" x2="75" y2="23"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" begin="1.4s" repeatCount="indefinite"/></line>'
+        + '</g>'
+        // Disque central avec brillance
+        + '<circle cx="84" cy="14" r="6" fill="#f5c451">'
+        + '<animate attributeName="r" values="6;6.8;6" dur="2.5s" repeatCount="indefinite"/></circle>'
+        // Petit reflet sur le disque (scintillement)
+        + '<circle cx="82" cy="12" r="1.5" fill="#fff3c4" opacity="0.9">'
+        + '<animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.8s" repeatCount="indefinite"/></circle>'
+        // Lunettes de soleil sur les yeux
+        + '<rect x="28" y="44" width="18" height="11" rx="4" fill="#1e2a38" stroke="#f5c451" stroke-width="1.5"/>'
         + '<rect x="54" y="44" width="18" height="11" rx="4" fill="#1e2a38" stroke="#f5c451" stroke-width="1.5"/>'
-        + '<line x1="46" y1="49" x2="54" y2="49" stroke="#f5c451" stroke-width="2"/></g>';
+        + '<line x1="46" y1="49" x2="54" y2="49" stroke="#f5c451" stroke-width="2"/>'
+        + '</g>';
+
+
+
+
   } else if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82)) {
     // Pluie : gouttes qui tombent + parapluie
     svg = '<g fill="#7db9ff" opacity="0.85">'
