@@ -11,9 +11,10 @@ const modules = {
     label: 'Météo',
     run: async () => {
       try {
-        log('Recherche de la ville : ' + CONFIG.ville + '...');
+        // ⚙️ Ville des Réglages (paramétrage), plus CONFIG.ville
+        log('Recherche de la ville : ' + setup.villeRef + '...');
         const geoUrl = 'https://geocoding-api.open-meteo.com/v1/search?name='
-          + encodeURIComponent(CONFIG.ville) + '&count=1&language=fr&format=json';
+          + encodeURIComponent(setup.villeRef) + '&count=1&language=fr&format=json';
         const geoData = await (await fetch(geoUrl)).json();
         if (!geoData.results || geoData.results.length === 0) { log('Ville introuvable.'); return; }
         const { latitude, longitude, name, country } = geoData.results[0];
@@ -56,7 +57,7 @@ const modules = {
       } catch (e) { log('Erreur RSS : ' + e.message); }
     }
   },
-      dialogue: {
+  dialogue: {
     label: 'Dialogue',
     run: async (saisie) => {
       try {
@@ -77,13 +78,10 @@ const modules = {
         // Interconnexion météo : la question porte sur le temps → données réelles
         let contexteMeteo = '';
         if (/\b(m[eé]t[eé]o|temps|temp[eé]rature|pleuvoir|pleut|soleil|il fait)\b/i.test(saisie)) {
+          // ⚙️ Hiérarchie : ville explicite dans la question, sinon ville de référence (Réglages)
           let ville = (saisie.match(/\b(?:à|a|sur|pour)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\-' ]*)/i) || [])[1];
           if (ville) ville = ville.trim().split(/\s+/).slice(0, 3).join(' ');
-          if (!ville) {
-            const fLieu = memoire.faits.filter(f => f.type === 'lieu').pop();
-            if (fLieu) ville = fLieu.text;
-          }
-          if (!ville) ville = CONFIG.ville;
+          if (!ville) ville = setup.villeRef;
           try {
             const m = await obtenirMeteo(ville);
             if (m) { contexteMeteo = m; log('🌤️ Météo récupérée pour : ' + ville); }
@@ -96,8 +94,11 @@ const modules = {
           log('🧠 Faits mobilisés : ' + retenus.length);
         }
 
-        // Construction du contexte système (faits + météo)
+        // Construction du contexte système (identités Réglages + faits + météo)
         let contexteSysteme = CONFIG.systemPrompt;
+        // ⚙️ Identités issues des Réglages (prime sur toute déduction)
+        if (setup.nomRobot) contexteSysteme = 'Tu t\'appelles ' + setup.nomRobot + '.\n' + contexteSysteme;
+        if (setup.nomUtilisateur) contexteSysteme += '\nTu t\'adresses à ' + setup.nomUtilisateur + ', appelle-le par son prénom.';
         if (retenus.length > 0) {
           contexteSysteme += '\n\nConnaissances memorisees sur l utilisateur :\n'
             + retenus.map(f => '- (' + f.type + ') ' + f.text).join('\n');
