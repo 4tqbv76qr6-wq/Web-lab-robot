@@ -1,3 +1,8 @@
+// ---- Réglages ----
+chargerSetup();
+afficherSetup();
+document.getElementById('btn-setup').addEventListener('click', enregistrerSetup);
+
 // ---- Zone de dialogue ----
 const dialogueInput = document.getElementById('dialogue-input');
 const dialogueSend = document.getElementById('dialogue-send');
@@ -41,10 +46,10 @@ log('Robot démarré. Mémoire : ' + memoire.faits.length + ' fait(s), ' + memoi
 
 statusEl.textContent = 'Robot en ligne — ' + Object.keys(modules).length + ' modules';
 
-// Visage météo au démarrage (ville du fait lieu si mémorisée, sinon CONFIG.ville)
+
+// Visage météo au démarrage (ville de référence des Réglages)
 (async () => {
   try {
-    const fLieu = memoire.faits.filter(f => f.type === 'lieu').pop();
-    await obtenirMeteo(fLieu ? fLieu.text : CONFIG.ville);
+    await obtenirMeteo(setup.villeRef);
   } catch (e) { /* visage par défaut */ }
 })();
