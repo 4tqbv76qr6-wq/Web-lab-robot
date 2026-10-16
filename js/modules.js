@@ -129,9 +129,9 @@ const modules = {
         if (contexteMeteo) {
           contexteSysteme += '\n\n' + contexteMeteo + ' Sers-toi de ces données réelles et actuelles pour répondre.';
         }
-        if (contexteWiki) {
+                if (contexteWiki) {
           contexteSysteme += '\n\n' + contexteWiki
-            + ' Sers-toi de cette donnee factuelle verifiee pour repondre, ne la contredis pas.';
+            + ' Considere ce resume comme un noyau factuel exact. Tu peux l enrichir librement avec tes propres connaissances, mais reste coherent avec ce noyau : ne le contredis jamais sur les faits qu il etablit.';
         }
         // ⚙️ Date et heure réelles injectées (le LLM n'a pas d'horloge)
         const maintenant = new Date();
