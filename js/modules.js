@@ -19,7 +19,6 @@ const modules = {
         if (!geoData.results || geoData.results.length === 0) { log('Ville introuvable.'); return; }
         const { latitude, longitude, name, country } = geoData.results[0];
         log('Ville trouvée : ' + name + ' (' + country + ')');
-
         const meteoUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + latitude
           + '&longitude=' + longitude
           + '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code'
@@ -68,13 +67,11 @@ const modules = {
           memoriser(f);
           return;
         }
-
         visage.set('pense');
         // Apprentissage automatique : repérer les infos durables
         extraireFaits(saisie);
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
-
         // Interconnexion météo : la question porte sur le temps → données réelles
         let contexteMeteo = '';
         if (/\b(m[eé]t[eé]o|temps|temp[eé]rature|pleuvoir|pleut|soleil|il fait)\b/i.test(saisie)) {
@@ -87,14 +84,40 @@ const modules = {
             if (m) { contexteMeteo = m; log('🌤️ Météo récupérée pour : ' + ville); }
           } catch (e) { log('Météo indisponible : ' + e.message); }
         }
-
+        // 📚 Interconnexion Wikipédia : question encyclopédique → résumé factuel réel
+        // (sauf si la question porte déjà sur la météo : rien à ajouter)
+        let contexteWiki = '';
+        if (!contexteMeteo) {
+          const motifsWiki = [
+            /c['’ ]est\s+quoi\s+(?:que\s+)?(?:c['’ ]est\s+|le\s+|la\s+|l['’ ]|un\s+|une\s+|les\s+)?(.+)/i,
+            /qu['’ ]est-ce\s+que\s+(?:c['’ ]est\s+|le\s+|la\s+|l['’ ]|un\s+|une\s+|les\s+)?(.+)/i,
+            /qu['’ ]est-ce\s+qu['’ ](?:un|une)\s+(.+)/i,
+            /qui\s+(?:est|etait|était)\s+(.+)/i,
+            /parle-moi\s+de\s+(.+)/i,
+            /explique-moi\s+(?:ce\s+qu['’ ]est\s+)?(.+)/i,
+            /d[eé]finis\s+(?:le\s+|la\s+|l['’ ]|un\s+|une\s+)?(.+)/i
+          ];
+          let sujetWiki = null;
+          for (const m of motifsWiki) {
+            const trouve = saisie.match(m);
+            if (trouve && trouve[1]) { sujetWiki = trouve[1]; break; }
+          }
+          if (sujetWiki) {
+            sujetWiki = sujetWiki.replace(/[?!.…]+\s*$/, '').trim();
+            if (sujetWiki.length >= 2) {
+              try {
+                const w = await obtenirResumeWiki(sujetWiki);
+                if (w) { contexteWiki = w; log('📚 Wikipédia mobilisé : ' + sujetWiki); }
+              } catch (e) { log('Wikipédia indisponible : ' + e.message); }
+            }
+          }
+        }
         // Sélection des faits pertinents (moteur style Labo 2)
         const retenus = faitsPertinents(saisie, 5);
         if (retenus.length > 0) {
           log('🧠 Faits mobilisés : ' + retenus.length);
         }
-
-        // Construction du contexte système (identités Réglages + faits + météo)
+        // Construction du contexte système (identités Réglages + faits + météo + Wikipédia)
         let contexteSysteme = CONFIG.systemPrompt;
         // ⚙️ Identités issues des Réglages (prime sur toute déduction)
         if (setup.nomRobot) contexteSysteme = 'Tu t\'appelles ' + setup.nomRobot + '.\n' + contexteSysteme;
@@ -106,20 +129,21 @@ const modules = {
         if (contexteMeteo) {
           contexteSysteme += '\n\n' + contexteMeteo + ' Sers-toi de ces données réelles et actuelles pour répondre.';
         }
-// ⚙️ Date et heure réelles injectées (le LLM n'a pas d'horloge)
-const maintenant = new Date();
-const dateHeure = maintenant.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-  + ', ' + maintenant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-contexteSysteme += '\nNous sommes le ' + dateHeure + '.';
-
-
+        if (contexteWiki) {
+          contexteSysteme += '\n\n' + contexteWiki
+            + ' Sers-toi de cette donnee factuelle verifiee pour repondre, ne la contredis pas.';
+        }
+        // ⚙️ Date et heure réelles injectées (le LLM n'a pas d'horloge)
+        const maintenant = new Date();
+        const dateHeure = maintenant.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+          + ', ' + maintenant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        contexteSysteme += '\nNous sommes le ' + dateHeure + '.';
         // Construction du contexte de dialogue (3 derniers échanges max)
         const derniers = memoire.messages.slice(-6);
         const messages = [
           { role: 'system', content: contexteSysteme },
           ...derniers
         ];
-
         // Tentative 1 : Puter.js (relais principal)
         let reponse = '';
         try {
@@ -136,7 +160,6 @@ contexteSysteme += '\nNous sommes le ' + dateHeure + '.';
           }
         } catch (ePuter) {
           log('⚠️ Puter indisponible (' + ePuter.message + '), essai Pollinations...');
-
           // Tentative 2 : Pollinations en secours
           const res = await fetch('https://text.pollinations.ai/openai', {
             method: 'POST',
@@ -150,9 +173,7 @@ contexteSysteme += '\nNous sommes le ' + dateHeure + '.';
             reponse = (data.choices?.[0]?.message?.content || '').trim();
           } catch (err) { reponse = brut.trim(); }
         }
-
         if (!reponse) { log('Réponse LLM vide.'); return; }
-
         memoire.messages.push({ role: 'assistant', content: reponse });
         sauvegarderMemoire();
         visage.set('parle', 4000);
