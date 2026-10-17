@@ -19,6 +19,7 @@ const modules = {
         if (!geoData.results || geoData.results.length === 0) { log('Ville introuvable.'); return; }
         const { latitude, longitude, name, country } = geoData.results[0];
         log('Ville trouvée : ' + name + ' (' + country + ')');
+
         const meteoUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + latitude
           + '&longitude=' + longitude
           + '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code'
@@ -67,11 +68,13 @@ const modules = {
           memoriser(f);
           return;
         }
+
         visage.set('pense');
         // Apprentissage automatique : repérer les infos durables
         extraireFaits(saisie);
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
+
         // Interconnexion météo : la question porte sur le temps → données réelles
         let contexteMeteo = '';
         if (/\b(m[eé]t[eé]o|temps|temp[eé]rature|pleuvoir|pleut|soleil|il fait)\b/i.test(saisie)) {
@@ -84,6 +87,7 @@ const modules = {
             if (m) { contexteMeteo = m; log('🌤️ Météo récupérée pour : ' + ville); }
           } catch (e) { log('Météo indisponible : ' + e.message); }
         }
+
         // 📚 Interconnexion Wikipédia : question encyclopédique → résumé factuel réel
         // (sauf si la question porte déjà sur la météo : rien à ajouter)
         let contexteWiki = '';
@@ -112,12 +116,23 @@ const modules = {
             }
           }
         }
+
+        // 📰 Interconnexion actualités : demande de nouvelles → titres RSS frais
+        let contexteActus = '';
+        if (/\b(actu|actualit[eé]s?|nouvelles?|quoi\s+de\s+neuf|gros\s+titres?|presse|journal)\b/i.test(saisie)) {
+          try {
+            const a = await obtenirActus(5);
+            if (a) { contexteActus = a; log('📰 Titres de presse récupérés (' + FLUX_ACTUS.length + ' flux)'); }
+          } catch (e) { log('Actualités indisponibles : ' + e.message); }
+        }
+
         // Sélection des faits pertinents (moteur style Labo 2)
         const retenus = faitsPertinents(saisie, 5);
         if (retenus.length > 0) {
           log('🧠 Faits mobilisés : ' + retenus.length);
         }
-        // Construction du contexte système (identités Réglages + faits + météo + Wikipédia)
+
+        // Construction du contexte système (identités + faits + météo + wiki + actus)
         let contexteSysteme = CONFIG.systemPrompt;
         // ⚙️ Identités issues des Réglages (prime sur toute déduction)
         if (setup.nomRobot) contexteSysteme = 'Tu t\'appelles ' + setup.nomRobot + '.\n' + contexteSysteme;
@@ -129,21 +144,27 @@ const modules = {
         if (contexteMeteo) {
           contexteSysteme += '\n\n' + contexteMeteo + ' Sers-toi de ces données réelles et actuelles pour répondre.';
         }
-                if (contexteWiki) {
+        if (contexteWiki) {
           contexteSysteme += '\n\n' + contexteWiki
-            + ' Considere ce resume comme un noyau factuel exact. Tu peux l enrichir librement avec tes propres connaissances, mais reste coherent avec ce noyau : ne le contredis jamais sur les faits qu il etablit.';
+            + ' Considere ce resume comme un noyau factuel exact. Tu peux l enrichir librement avec tes propres connaissances, mais reste coherent avec ce noyau : ne le contedis jamais sur les faits qu il etablit.';
+        }
+        if (contexteActus) {
+          contexteSysteme += '\n\n' + contexteActus
+            + ' Redige a partir de ces titres un point d actualite lisible et hierarchise en francais : regroupe les themes, cite les sources des titres que tu utilises. Precise que ce sont des titres du moment, pas des articles complets. Si l utilisateur demande le detail, propose-lui de consulter les articles en ligne.';
         }
         // ⚙️ Date et heure réelles injectées (le LLM n'a pas d'horloge)
         const maintenant = new Date();
         const dateHeure = maintenant.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
           + ', ' + maintenant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
         contexteSysteme += '\nNous sommes le ' + dateHeure + '.';
+
         // Construction du contexte de dialogue (3 derniers échanges max)
         const derniers = memoire.messages.slice(-6);
         const messages = [
           { role: 'system', content: contexteSysteme },
           ...derniers
         ];
+
         // Tentative 1 : Puter.js (relais principal)
         let reponse = '';
         try {
@@ -160,6 +181,7 @@ const modules = {
           }
         } catch (ePuter) {
           log('⚠️ Puter indisponible (' + ePuter.message + '), essai Pollinations...');
+
           // Tentative 2 : Pollinations en secours
           const res = await fetch('https://text.pollinations.ai/openai', {
             method: 'POST',
@@ -173,7 +195,9 @@ const modules = {
             reponse = (data.choices?.[0]?.message?.content || '').trim();
           } catch (err) { reponse = brut.trim(); }
         }
+
         if (!reponse) { log('Réponse LLM vide.'); return; }
+
         memoire.messages.push({ role: 'assistant', content: reponse });
         sauvegarderMemoire();
         visage.set('parle', 4000);
