@@ -70,8 +70,13 @@ const modules = {
         }
 
         visage.set('pense');
-        // Apprentissage automatique : repérer les infos durables
-        extraireFaits(saisie);
+                // 🧠 Apprentissage hybride : regex (passe 1, gratuite, déterministe)
+        // puis LLM (passe 2, seulement si aucune regex n'a matché + pré-filtre 1re personne)
+        const regexAMatche = extraireFaits(saisie);
+        if (!regexAMatche && estInfoPersonnelle(saisie)) {
+          const appris = await extraireFaitsLLM(saisie);
+          if (appris) log('🧠 Extraction LLM mobilisée');
+        }
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
 
