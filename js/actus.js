@@ -1,7 +1,8 @@
 // ---- Actualités pour le dialogue (titres RSS frais, texte injectable) ----
 const FLUX_ACTUS = [
   'https://www.lemonde.fr/rss/une.xml',
-  'https://www.ouest-france.fr/rss-en-continu.xml'
+  'https://www.ouest-france.fr/rss-en-continu.xml',
+  'https://www.bfmtv.com/rss/actualites/'
 ];
 
 async function obtenirActus(nbTitresParFlux) {
