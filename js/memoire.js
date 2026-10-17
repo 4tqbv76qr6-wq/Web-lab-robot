@@ -107,6 +107,8 @@ function memoriser(texte) {
 // Chaque règle produit un fait canonique « cle : valeur ».
 // Ordre des règles = priorité : « aime pas » AVANT « aime », etc.
 function extraireFaits(saisie) {
+  // Garde anti-interrogatif : une question n'est jamais une info à mémoriser
+  if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combien|est-ce|c'est\s+quoi|dis-moi|tu\s+peux|peux-tu|donne-moi|raconte)\b/i.test(saisie.trim())) return false;
   const regles = [
     // Identite
     { type: 'identite', cle: 'prénom', motif: /je\s+m['’ ]appelle\s+([^.!?]+)/i },
@@ -162,10 +164,13 @@ function extraireFaits(saisie) {
     { type: 'habitude', cle: 'habitude', motif: /tous\s+les\s+(?:matins|soirs|jours)\s*,?\s*je\s+([^.!?]+)/i },
     // Travail
     { type: 'travail', cle: 'travail', motif: /je\s+travaille\s+(?:sur|chez|dans|comme)?\s*([^.!?]+)/i },
-    { type: 'travail', cle: 'travail', motif: /je\s+suis\s+(retrait[eé][^.!?]*)/i },
+    { type: 'travail', cle: 'travail', motif: /je\s+suis\s+(retrait[eé][^.!?]*)/ i },
     // Objectifs (cle multiple)
-    { type: 'objectif', cle: 'objectif', motif: /(?:je\s+veux|mon\s+objectif\s+est\s+(?:de\s+)?)\s*([^.!?]+)/i },
-    { type: 'objectif', cle: 'objectif', motif: /j['’ ]aimerais\s+(?:apprendre\s+)?([^.!?]+)/i },
+        // Objectifs (cle multiple) — exclusion des politesses : « je veux bien », « je veux savoir »...
+    { type: 'objectif', cle: 'objectif', motif: /(?:je\s+veux|mon\s+objectif\s+est\s+(?:de\s+)?)\s*([^.!?]+)/i,
+      exclus: /^(bien|savoir|continuer|ça|ca|oui|d['’]accord|dacord)\b/i },
+    { type: 'objectif', cle: 'objectif', motif: /j['’ ]aimerais\s+(?:bien\s+)?(?:apprendre\s+)?([^.!?]+)/i,
+      exclus: /^(bien|savoir|continuer|ça|ca|oui|d['’]accord|dacord)\b/i },
     // Evenements (cle multiple)
     { type: 'evenement', cle: 'anniversaire', motif: /mon\s+anniversaire\s+est\s+(?:le\s+)?([^.!?]+)/i },
     { type: 'evenement', cle: 'événement',    motif: /je\s+pars\s+(?:en|à|a|au|aux|pour)?\s*([^.!?]+)/i }
@@ -176,6 +181,7 @@ function extraireFaits(saisie) {
     if (!m) return;
     const valeur = (m[1] || '').trim().replace(/\s+/g, ' ');
     if (!valeur || valeur.length < 2) return;
+    if (r.exclus && r.exclus.test(valeur)) return;
     const resultat = stockerFait(r.type, r.cle, valeur);
     if (resultat === 'apris') log('🔎 Appris automatiquement (' + r.type + ') : ' + r.cle + ' : ' + valeur);
     else if (resultat === 'maj') log('🔎 Fait mis à jour (' + r.type + ') : ' + r.cle + ' : ' + valeur);
@@ -197,6 +203,8 @@ function estInfoPersonnelle(saisie) {
 }
 
 async function extraireFaitsLLM(saisie) {
+// Garde anti-interrogatif : une question n'est jamais une info à mémoriser
+  if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combien|est-ce|c'est\s+quoi|dis-moi|tu\s+peux|peux-tu|donne-moi|raconte)\b/i.test(saisie.trim())) return false;
   const consigne = 'Le message suivant vient de l utilisateur et parle de lui en premiere personne. '
     + 'Extrait, si present, le fait durable le concernant et reponds STRICTEMENT en JSON sur une seule ligne : '
     + '{"type": "...", "cle": "...", "valeur": "..."} '
