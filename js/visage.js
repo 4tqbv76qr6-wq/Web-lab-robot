@@ -50,7 +50,7 @@ function appliquerMeteoVisage(code) {
   const g = document.getElementById('visage-meteo');
   if (!g) return;
   let svg = '';
-  if (code === 0 || code === 1) {
+  if ((code === 0 || code === 1) && !estNuit()) {
 
     // Soleil : disque scintillant en haut à droite + lunettes de soleil sur les yeux
     svg = '<g>'
@@ -121,3 +121,31 @@ function appliquerMeteoVisage(code) {
   }
   g.innerHTML = svg;
 }
+
+// ---- Ambiance jour/nuit : lune et étoiles la nuit (20h-7h) ----
+function estNuit() {
+  const h = new Date().getHours();
+  return h >= 20 || h < 7;
+}
+
+function appliquerJourNuit() {
+  const g = document.getElementById('visage-nuit');
+  if (!g) return;
+  if (!estNuit()) { g.innerHTML = ''; return; }
+  g.innerHTML = '<g>'
+    // Croissant de lune en haut à droite (même place que le soleil météo)
+    + '<circle cx="84" cy="14" r="7" fill="#fff3c4" opacity="0.95"/>'
+    + '<circle cx="88" cy="11" r="6" fill="#0d1620"/>'
+    // Étoiles scintillantes
+    + '<circle cx="20" cy="12" r="1.3" fill="#fff3c4">'
+    + '<animate attributeName="opacity" values="0.9;0.2;0.9" dur="2.2s" repeatCount="indefinite"/></circle>'
+    + '<circle cx="34" cy="6" r="1" fill="#fff3c4">'
+    + '<animate attributeName="opacity" values="0.3;0.9;0.3" dur="3.1s" repeatCount="indefinite"/></circle>'
+    + '<circle cx="70" cy="4" r="1.2" fill="#fff3c4">'
+    + '<animate attributeName="opacity" values="0.8;0.2;0.8" dur="2.7s" begin="0.5s" repeatCount="indefinite"/></circle>'
+    + '<circle cx="95" cy="26" r="1" fill="#fff3c4">'
+    + '<animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.4s" begin="1s" repeatCount="indefinite"/></circle>'
+    + '</g>';
+}
+appliquerJourNuit();
+setInterval(appliquerJourNuit, 60000);
