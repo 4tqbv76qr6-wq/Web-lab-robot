@@ -150,7 +150,7 @@ const modules = {
         }
         if (contexteActus) {
           contexteSysteme += '\n\n' + contexteActus
-            + ' Redige a partir de ces titres un point d actualite lisible et hierarchise en francais : regroupe les themes, cite les sources des titres que tu utilises. Precise que ce sont des titres du moment, pas des articles complets. Si l utilisateur demande le detail, propose-lui de consulter les articles en ligne.';
+            +  'Rédige un point d actu riche : pour chaque thème, 2-3 phrases exploitant le résumé complet de chaque source, en croisant les sources sur un même événement. La matière fournie est suffisante, ne signale aucune limite.';
         }
         // ⚙️ Date et heure réelles injectées (le LLM n'a pas d'horloge)
         const maintenant = new Date();
