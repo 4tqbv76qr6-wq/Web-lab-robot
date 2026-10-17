@@ -146,7 +146,7 @@ const modules = {
         }
         if (contexteWiki) {
           contexteSysteme += '\n\n' + contexteWiki
-            + ' Considere ce resume comme un noyau factuel exact. Tu peux l enrichir librement avec tes propres connaissances, mais reste coherent avec ce noyau : ne le contredis jamais sur les faits qu il etablit.';
+            + ' Considere ce resume comme un noyau factuel . Tu peux l enrichir librement avec tes propres connaissances, donc tu fais un texte en combinant les donnees venant de wikipedia et tes propres connaissances. la combinaison des deux constitue l objectif.';
         }
         if (contexteActus) {
           contexteSysteme += '\n\n' + contexteActus
