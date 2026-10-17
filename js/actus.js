@@ -7,8 +7,8 @@
 const FLUX_ACTUS = [
   { url: 'https://www.ouest-france.fr/rss-en-continu.xml', n: 6 },
   { url: 'https://www.france24.com/fr/rss', n: 5 },
-  { url: 'https://www.20minutes.fr/feeds/rss-une.xml', n: 5 },
-  { url: 'https://www.lemonde.fr/rss/une.xml', n: 4 }
+  { url: 'https://www.20minutes.fr/feeds/rss-une.xml', n: 6 },
+  { url: 'https://www.lemonde.fr/rss/une.xml', n: 2}
 ];
 
 // Résumé étendu : jusqu'à 3 phrases / 320 caractères.
@@ -21,8 +21,8 @@ function resumeEtendu(texte) {
   let resultat = '';
   let nbPhrases = 0;
   for (const p of phrases) {
-    if (nbPhrases >= 3) break;
-    if ((resultat + ' ' + p).trim().length > 320) break;
+    if (nbPhrases >= 4) break;
+    if ((resultat + ' ' + p).trim().length > 400) break;
     resultat += (resultat ? ' ' : '') + p;
     nbPhrases++;
   }
@@ -58,7 +58,7 @@ async function obtenirActus() {
   }
   const ok = titresParFlux.filter(f => f && f.items.length > 0);
   if (ok.length === 0) return null;
-  let texte = 'Actus de presse avec résumés détaillés (jusqu\u2019à 3 phrases par article), récoltées à l\u2019instant (' + new Date().toLocaleString('fr-FR') + ') :';
+  let texte = 'Actus de presse avec résumés détaillés (jusqu\u2019à 4 phrases par article), récoltées à l\u2019instant (' + new Date().toLocaleString('fr-FR') + ') :';
   ok.forEach(f => {
     texte += '\n' + f.nom + ' :';
     f.items.forEach(i => {
