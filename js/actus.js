@@ -1,11 +1,12 @@
-
 // ---- Actualités pour le dialogue (titres + résumés RSS frais, texte injectable) ----
 // Ordre = priorité décroissante. n = nombre de titres récupérés par flux.
 // (BFM et Franceinfo testes le 17/10/2026 : rss2json refuse BFM, renvoie un flux
 //  vide pour Franceinfo — a retester dans quelques semaines.)
 const FLUX_ACTUS = [
-  { url: 'https://www.ouest-france.fr/rss-en-continu.xml', n: 7 },
-  { url: 'https://www.lemonde.fr/rss/une.xml', n: 5 }
+  { url: 'https://www.ouest-france.fr/rss-en-continu.xml', n: 6 },
+  { url: 'https://www.france24.com/fr/rss', n: 5 },
+  { url: 'https://www.20minutes.fr/feeds/rss-une.xml', n: 5 },
+  { url: 'https://www.lemonde.fr/rss/une.xml', n: 4 }
 ];
 
 // Premiere phrase de la description : assez de matiere pour le LLM, pas trop de contexte
