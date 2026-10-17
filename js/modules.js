@@ -150,7 +150,7 @@ const modules = {
         }
         if (contexteActus) {
           contexteSysteme += '\n\n' + contexteActus
-            +  'Rédige un point d actu riche : pour chaque thème, 2-3 phrases exploitant le résumé complet de chaque source, en croisant les sources sur un même événement. La matière fournie est suffisante, ne signale aucune limite.';
+            +  'redige un point d actu riche : pour chaque theme, 2-3 phrases exploitant le resume complet de chaque source, en croisant les sources sur un meme evenement. La matiere fournie est suffisante, ne signale aucune limite.Ne cite pas les sources dans le corps du texte, elles sont connues de l utilisateur : mentionne-les une seule fois, globalement, en fin de resume.';
         }
         // ⚙️ Date et heure réelles injectées (le LLM n'a pas d'horloge)
         const maintenant = new Date();
