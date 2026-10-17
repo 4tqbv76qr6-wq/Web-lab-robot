@@ -1,8 +1,45 @@
 // ---- Mémoire persistante ----
 // faits : connaissances structurees (moteur style Labo 2)
 // messages : transcription des dialogues (archive)
-// Format canonique des faits : « cle : valeur » — lisible, injectable, anti-doublon par cle.
+// Format canonique des faits : « cle : valeur » — lisible, injectable.
+// Cles uniques (une femme, un lieu) : la nouvelle valeur remplace l ancienne.
+// Cles multiples (freres, cousins, amis...) : empilement, anti-doublon cle+valeur.
 const memoire = { faits: [], messages: [] };
+
+// Cles pouvant avoir PLUSIEURS valeurs (on peut avoir plusieurs freres, amis, etc.)
+const CLES_MULTIPLES = ['frère', 'sœur', 'neveu', 'nièce', 'oncle', 'tante', 'cousin', 'cousine',
+  'grand-père', 'grand-mère', 'petit-fils', 'petite-fille', 'beau-fils', 'belle-fille',
+  'ami', 'amie', 'collègue', 'voisin', 'voisine', 'fils', 'fille',
+  'habitude', 'aime', 'aime pas', 'adore', 'déteste', 'objectif', 'événement'];
+
+function estCleMultiple(cle) {
+  return CLES_MULTIPLES.includes(cle.toLowerCase());
+}
+
+// Stockage canonique d un fait : gere unique vs multiple, dedupe, met a jour.
+// Retourne 'apris' | 'maj' | 'deja' | null.
+function stockerFait(type, cle, valeur) {
+  const texte = cle + ' : ' + valeur;
+  const cleMin = cle.toLowerCase();
+  const texteMin = texte.toLowerCase();
+
+  if (estCleMultiple(cleMin)) {
+    // Cle multiple : empilement, anti-doublon sur cle + valeur
+    const existe = memoire.faits.some(f => f.text.toLowerCase() === texteMin);
+    if (existe) return 'deja';
+    memoire.faits.push({ type: type, text: texte, date: new Date().toISOString().slice(0, 10) });
+    return 'apris';
+  }
+  // Cle unique : la nouvelle valeur remplace l ancienne
+  const index = memoire.faits.findIndex(f => f.text.toLowerCase().startsWith(cleMin + ' :'));
+  if (index >= 0) {
+    if (memoire.faits[index].text.toLowerCase() === texteMin) return 'deja';
+    memoire.faits[index] = { type: type, text: texte, date: new Date().toISOString().slice(0, 10) };
+    return 'maj';
+  }
+  memoire.faits.push({ type: type, text: texte, date: new Date().toISOString().slice(0, 10) });
+  return 'apris';
+}
 
 function sauvegarderMemoire() {
   try {
@@ -37,7 +74,7 @@ function reinitialiserMemoire() {
 function normaliser(texte) {
   return texte.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9 ]/g, ' ')
+     .replace(/[^a-z0-9 ]/g, ' ')
     .split(/\s+/).filter(m => m.length > 2);
 }
 
@@ -66,9 +103,8 @@ function memoriser(texte) {
   afficherMemoire();
 }
 
-// ---- Apprentissage automatique : extraction de faits par règles ----
+// ---- Apprentissage automatique passe 1 : extraction de faits par règles ----
 // Chaque règle produit un fait canonique « cle : valeur ».
-// Anti-doublon par cle : une nouvelle valeur sur une cle existante remplace l'ancienne.
 // Ordre des règles = priorité : « aime pas » AVANT « aime », etc.
 function extraireFaits(saisie) {
   const regles = [
@@ -92,7 +128,7 @@ function extraireFaits(saisie) {
     { type: 'famille', cle: 'compagnon',    motif: /mon\s+(?:compagnon|partenaire)\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'famille', cle: 'fils',         motif: /mon\s+fils\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'famille', cle: 'fille',        motif: /ma\s+fille\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
-    // Famille — cercle élargi
+    // Famille — cercle élargi (cles multiples : on peut avoir plusieurs freres, cousins...)
     { type: 'famille', cle: 'frère',        motif: /mon\s+fr[eè]re\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'famille', cle: 'sœur',         motif: /ma\s+s[œoe]ur\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'famille', cle: 'père',         motif: /mon\s+p[eè]re\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
@@ -112,7 +148,7 @@ function extraireFaits(saisie) {
     // Famille — quantités
     { type: 'famille', cle: 'enfants',        motif: /j['’ ]ai\s+(\d+)\s*enfants/i },
     { type: 'famille', cle: 'petits-enfants', motif: /j['’ ]ai\s+(\d+)\s*petits-enfants/i },
-    // Relations sociales
+    // Relations sociales (cles multiples)
     { type: 'relations', cle: 'ami',      motif: /mon\s+(?:meilleur\s+)?ami\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'relations', cle: 'amie',     motif: /ma\s+(?:meilleure\s+)?amie\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'relations', cle: 'collègue', motif: /mon\s+coll[eè]gue\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
@@ -121,38 +157,108 @@ function extraireFaits(saisie) {
     // Sante
     { type: 'sante', cle: 'santé', motif: /je\s+suis\s+allergique\s+(?:à|a)?\s*([^.!?]+)/i },
     { type: 'sante', cle: 'santé', motif: /je\s+souffre\s+(?:de|d['’ ])\s*([^.!?]+)/i },
-    // Habitudes
+    // Habitudes (cle multiple : on peut avoir plusieurs habitudes)
     { type: 'habitude', cle: 'habitude', motif: /chaque\s+(?:matin|soir|jour|semaine)\s*,?\s*je\s+([^.!?]+)/i },
     { type: 'habitude', cle: 'habitude', motif: /tous\s+les\s+(?:matins|soirs|jours)\s*,?\s*je\s+([^.!?]+)/i },
     // Travail
     { type: 'travail', cle: 'travail', motif: /je\s+travaille\s+(?:sur|chez|dans|comme)?\s*([^.!?]+)/i },
     { type: 'travail', cle: 'travail', motif: /je\s+suis\s+(retrait[eé][^.!?]*)/i },
-    // Objectifs
+    // Objectifs (cle multiple)
     { type: 'objectif', cle: 'objectif', motif: /(?:je\s+veux|mon\s+objectif\s+est\s+(?:de\s+)?)\s*([^.!?]+)/i },
     { type: 'objectif', cle: 'objectif', motif: /j['’ ]aimerais\s+(?:apprendre\s+)?([^.!?]+)/i },
-    // Evenements
+    // Evenements (cle multiple)
     { type: 'evenement', cle: 'anniversaire', motif: /mon\s+anniversaire\s+est\s+(?:le\s+)?([^.!?]+)/i },
     { type: 'evenement', cle: 'événement',    motif: /je\s+pars\s+(?:en|à|a|au|aux|pour)?\s*([^.!?]+)/i }
   ];
+  let auMoinsUn = false;
   regles.forEach(r => {
     const m = saisie.match(r.motif);
     if (!m) return;
     const valeur = (m[1] || '').trim().replace(/\s+/g, ' ');
     if (!valeur || valeur.length < 2) return;
-    const texte = r.cle + ' : ' + valeur;
-    // Anti-doublon par cle : la nouvelle valeur remplace l'ancienne (memoire propre)
-    const index = memoire.faits.findIndex(f => f.text.toLowerCase().startsWith(r.cle.toLowerCase() + ' :'));
-    if (index >= 0) {
-      if (memoire.faits[index].text.toLowerCase() === texte.toLowerCase()) return; // deja connu
-      memoire.faits[index] = { type: r.type, text: texte, date: new Date().toISOString().slice(0, 10) };
-      log('🔎 Fait mis à jour (' + r.type + ') : ' + texte);
-    } else {
-      memoire.faits.push({ type: r.type, text: texte, date: new Date().toISOString().slice(0, 10) });
-      log('🔎 Appris automatiquement (' + r.type + ') : ' + texte);
-    }
-    sauvegarderMemoire();
-    afficherMemoire();
+    const resultat = stockerFait(r.type, r.cle, valeur);
+    if (resultat === 'apris') log('🔎 Appris automatiquement (' + r.type + ') : ' + r.cle + ' : ' + valeur);
+    else if (resultat === 'maj') log('🔎 Fait mis à jour (' + r.type + ') : ' + r.cle + ' : ' + valeur);
+    if (resultat === 'apris' || resultat === 'maj') auMoinsUn = true;
   });
+  if (auMoinsUn) { sauvegarderMemoire(); afficherMemoire(); }
+  return auMoinsUn; // indique a l orchestrateur si la passe 1 a capture quelque chose
+}
+
+// ---- Extraction hybride : passe 2 LLM pour les tournures imprévues ----
+// Declenchee seulement si : pre-filtre premiere personne OK + aucune regex n a matche.
+// Le LLM propose, le moteur valide et stocke (gouvernance cote code).
+
+const TYPES_MEMOIRE_AUTORISES = ['identite', 'lieu', 'gout', 'famille', 'relations', 'sante', 'habitude', 'travail', 'objectif', 'evenement', 'fait'];
+
+// Pre-filtre bon marche : la phrase parle-t-elle de l utilisateur (1re personne / possessif) ?
+function estInfoPersonnelle(saisie) {
+  return /\b(je\s+(?:suis|m['’ ]appelle|habite|vis|aime|adore|d[eé]teste|pr[eé]f[eè]re|veux|aimerais|travaille|souffre|suis\s+allergique|pars|ai)\b|j'’\b|chaque\s+(?:matin|soir|jour)|tous\s+les\s+(?:matins|soirs|jours)|mon\s+|ma\s+|mes\s+)/i.test(saisie);
+}
+
+async function extraireFaitsLLM(saisie) {
+  const consigne = 'Le message suivant vient de l utilisateur et parle de lui en premiere personne. '
+    + 'Extrait, si present, le fait durable le concernant et reponds STRICTEMENT en JSON sur une seule ligne : '
+    + '{"type": "...", "cle": "...", "valeur": "..."} '
+    + 'ou type est pris dans [identite, lieu, gout, famille, relations, sante, habitude, travail, objectif, evenement, fait], '
+    + 'et cle est le role ou la nature du fait (ex : "femme", "habite", "aime", "fils", "habitude", "objectif"). '
+    + 'S il n y a aucune information durable sur l utilisateur (question, salutation, opinion passagere, action en cours), '
+    + 'reponds STRICTEMENT {"rien": true}. En cas de doute, reponds {"rien": true}.';
+
+  let brut = '';
+  try {
+    // Relais principal : Puter
+    try {
+      if (typeof puter === 'undefined') throw new Error('Puter non charge');
+      const rep = await puter.ai.chat([
+        { role: 'system', content: consigne },
+        { role: 'user', content: saisie }
+      ]);
+      brut = typeof rep === 'string' ? rep : String(rep?.message?.content ?? rep?.text ?? rep ?? '');
+    } catch (ePuter) {
+      // Relais secours : Pollinations
+      const res = await fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: consigne },
+            { role: 'user', content: saisie }
+          ],
+          model: 'openai'
+        })
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      brut = (data.choices?.[0]?.message?.content ?? '').trim();
+    }
+
+    // Extraction du JSON (tolere les fences ``` et le texte parasite)
+    const match = brut.match(/\{[^{}]*\}/);
+    if (!match) return false;
+    const extrait = JSON.parse(match[0]);
+
+    // Garde-fous : validation stricte avant tout stockage
+    if (extrait && extrait.rien === true) return false;
+    if (!extrait || !TYPES_MEMOIRE_AUTORISES.includes(extrait.type)) return false;
+    const cle = String(extrait.cle || '').trim().replace(/\s+/g, ' ');
+    const valeur = String(extrait.valeur || '').trim().replace(/\s+/g, ' ');
+    if (cle.length < 2 || valeur.length < 2) return false;
+
+    // Stockage canonique (unique vs multiple) : meme gouvernance que les regex
+    const resultat = stockerFait(extrait.type, cle, valeur);
+    if (resultat === 'apris') log('🔎 Appris — LLM (' + extrait.type + ') : ' + cle + ' : ' + valeur);
+    else if (resultat === 'maj') log('🔎 Fait mis à jour — LLM (' + extrait.type + ') : ' + cle + ' : ' + valeur);
+    if (resultat === 'apris' || resultat === 'maj') {
+      sauvegarderMemoire();
+      afficherMemoire();
+      return true;
+    }
+    return false; // 'deja' connu
+  } catch (e) {
+    // JSON malforme, reseau, etc. : on ignore silencieusement, jamais de fait corrompu
+    return false;
+  }
 }
 
 // ---- Visualisation de la mémoire ----
