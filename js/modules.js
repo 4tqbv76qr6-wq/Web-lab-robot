@@ -146,11 +146,11 @@ const modules = {
         }
         if (contexteWiki) {
           contexteSysteme += '\n\n' + contexteWiki
-            + ' Considere ce resume comme un noyau factuel exact. Tu peux l enrichir librement avec tes propres connaissances, mais reste coherent avec ce noyau : ne le contedis jamais sur les faits qu il etablit.';
+            + ' Considere ce resume comme un noyau factuel exact. Tu peux l enrichir librement avec tes propres connaissances, mais reste coherent avec ce noyau : ne le contredis jamais sur les faits qu il etablit.';
         }
         if (contexteActus) {
           contexteSysteme += '\n\n' + contexteActus
-            +  'redige un point d actu riche : pour chaque theme, 2-3 phrases exploitant le resume complet de chaque source, en croisant les sources sur un meme evenement. La matiere fournie est suffisante, ne signale aucune limite.Ne cite pas les sources dans le corps du texte, elles sont connues de l utilisateur : mentionne-les une seule fois, globalement, en fin de resume.';
+            +  'redige un point d actu riche : pour chaque theme, 3-4 phrases exploitant le resume complet de chaque source, en croisant les sources sur un meme evenement. La matiere fournie est suffisante, ne signale aucune limite.Ne cite pas les sources, elles sont connues de l utilisateur.';
         }
         // ⚙️ Date et heure réelles injectées (le LLM n'a pas d'horloge)
         const maintenant = new Date();
