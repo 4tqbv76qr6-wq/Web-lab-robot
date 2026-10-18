@@ -268,7 +268,9 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     const cle = String(extrait.cle || '').trim().replace(/\s+/g, ' ');
     const valeur = String(extrait.valeur || '').trim().replace(/\s+/g, ' ');
     if (cle.length < 2 || valeur.length < 2) return false;
-
+    // Garde nom propre (miroir de celle des regex) : famille/relations ne mémorise
+    // que des noms (majuscule), jamais un état (« décédé », « malade »...)
+    if ((extrait.type === 'famille' || extrait.type === 'relations') && /^[a-zà-ÿ]/.test(valeur)) return false;
     // Stockage canonique (unique vs multiple) : meme gouvernance que les regex
     const resultat = stockerFait(extrait.type, cle, valeur);
     if (resultat === 'apris') log('🔎 Appris — LLM (' + extrait.type + ') : ' + cle + ' : ' + valeur);
