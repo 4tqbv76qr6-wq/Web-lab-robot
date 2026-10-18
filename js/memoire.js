@@ -168,7 +168,7 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     { type: 'habitude', cle: 'habitude', motif: /tous\s+les\s+(?:matins|soirs|jours)\s*,?\s*je\s+([^.!?]+)/i },
     // Travail
     { type: 'travail', cle: 'travail', motif: /je\s+travaille\s+(?:sur|chez|dans|comme)?\s*([^.!?]+)/i },
-    { type: 'travail', cle: 'travail', motif: /je\s+suis\s+(retrait[eé][^.!?]*)/ i },
+    { type: 'travail', cle: 'travail', motif: /je\s+suis\s+(retrait[eé][^.!?]*)/i },
     // Objectifs (cle multiple)
         // Objectifs (cle multiple) — exclusion des politesses : « je veux bien », « je veux savoir »...
     { type: 'objectif', cle: 'objectif', motif: /(?:je\s+veux|mon\s+objectif\s+est\s+(?:de\s+)?)\s*([^.!?]+)/i,
