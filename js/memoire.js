@@ -107,8 +107,10 @@ function memoriser(texte) {
 // Chaque règle produit un fait canonique « cle : valeur ».
 // Ordre des règles = priorité : « aime pas » AVANT « aime », etc.
 function extraireFaits(saisie) {
-  // Garde anti-interrogatif : une question n'est jamais une info à mémoriser
-  if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combien|est-ce|c'est\s+quoi|dis-moi|tu\s+peux|peux-tu|donne-moi|raconte)\b/i.test(saisie.trim())) return false;
+// Garde anti-interrogatif : une question n'est jamais une info à mémoriser
+// (le « ? » est le signal infaillible, quelle que soit la formulation)
+if (saisie.includes('?')) return false;
+if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combien|est-ce|dis-moi|tu\s+peux|peux-tu|donne-moi|raconte)\b/i.test(saisie.trim())) return false;
   const regles = [
     // Identite
     { type: 'identite', cle: 'prénom', motif: /je\s+m['’ ]appelle\s+([^.!?]+)/i },
@@ -150,6 +152,8 @@ function extraireFaits(saisie) {
     // Famille — quantités
     { type: 'famille', cle: 'enfants',        motif: /j['’ ]ai\s+(\d+)\s*enfants/i },
     { type: 'famille', cle: 'petits-enfants', motif: /j['’ ]ai\s+(\d+)\s*petits-enfants/i },
+{ type: 'famille', cle: 'beau-père',  motif: /mon\s+beau-p[eè]re\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
+{ type: 'famille', cle: 'belle-mère', motif: /ma\s+belle-m[eè]re\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     // Relations sociales (cles multiples)
     { type: 'relations', cle: 'ami',      motif: /mon\s+(?:meilleur\s+)?ami\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'relations', cle: 'amie',     motif: /ma\s+(?:meilleure\s+)?amie\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
@@ -204,7 +208,10 @@ function estInfoPersonnelle(saisie) {
 
 async function extraireFaitsLLM(saisie) {
 // Garde anti-interrogatif : une question n'est jamais une info à mémoriser
-  if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combien|est-ce|c'est\s+quoi|dis-moi|tu\s+peux|peux-tu|donne-moi|raconte)\b/i.test(saisie.trim())) return false;
+// (le « ? » est le signal infaillible, quelle que soit la formulation)
+if (saisie.includes('?')) return false;
+if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combien|est-ce|dis-moi|tu\s+peux|peux-tu|donne-moi|raconte)\b/i.test(saisie.trim())) return false;
+
   const consigne = 'Le message suivant vient de l utilisateur et parle de lui en premiere personne. '
     + 'Extrait, si present, le fait durable le concernant et reponds STRICTEMENT en JSON sur une seule ligne : '
     + '{"type": "...", "cle": "...", "valeur": "..."} '
