@@ -212,19 +212,18 @@ async function extraireFaitsLLM(saisie) {
 if (saisie.includes('?')) return false;
 if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combien|est-ce|dis-moi|tu\s+peux|peux-tu|donne-moi|raconte)\b/i.test(saisie.trim())) return false;
 
-  const consigne = 'Le message suivant vient de l utilisateur et parle de lui en premiere personne. '
-    + 'Extrait, si present, le fait durable le concernant et reponds STRICTEMENT en JSON sur une seule ligne : '
-    + '{"type": "...", "cle": "...", "valeur": "..."} '
-    + 'ou type est pris dans [identite, lieu, gout, famille, relations, sante, habitude, travail, objectif, evenement, fait]. '
-    + 'REGLES STRICTES : '
-    + '1) valeur doit contenir SEULEMENT le nom, le prenom ou le fait essentiel, JAMAIS une phrase complete ni de preambule. '
-    + 'Exemple : pour « Mon pere s appelle Ferdinand », reponds {"type": "famille", "cle": "pere", "valeur": "Ferdinand"}. '
-    + '2) Tout lien de parente (pere, mere, frere, soeur, beau-pere, belle-mere, oncle, tante, cousin, neveu, niece, grand-parent...) '
-    + 'donne TOUJOURS type "famille". '
-    + '3) cle est le role ou la nature du fait en un ou deux mots (ex : "femme", "habite", "aime", "beau-pere"). '
-    + 'S il n y a aucune information durable sur l utilisateur (question, salutation, opinion passagere, action en cours), '
-    + 'reponds STRICTEMENT {"rien": true}. En cas de doute, reponds {"rien": true}.';
-
+    const consigne = `Le message suivant vient de l utilisateur et parle de lui en premiere personne. `
+    + `Extrait, si present, le fait durable le concernant et reponds STRICTEMENT en JSON sur une seule ligne : `
+    + `{"type": "...", "cle": "...", "valeur": "..."} `
+    + `ou type est pris dans [identite, lieu, gout, famille, relations, sante, habitude, travail, objectif, evenement, fait]. `
+    + `REGLES STRICTES : `
+    + `1) valeur doit contenir SEULEMENT le nom, le prenom ou le fait essentiel, JAMAIS une phrase complete ni de preambule. `
+    + `Exemple : pour "Mon pere s'appelle Ferdinand", reponds {"type": "famille", "cle": "pere", "valeur": "Ferdinand"}. `
+    + `2) Tout lien de parente (pere, mere, frere, soeur, beau-pere, belle-mere, oncle, tante, cousin, neveu, niece, grand-parent...) `
+    + `donne TOUJOURS type "famille". `
+    + `3) cle est le role ou la nature du fait en un ou deux mots (ex : "femme", "habite", "aime", "beau-pere"). `
+    + `S il n y a aucune information durable sur l utilisateur (question, salutation, opinion passagere, action en cours), `
+    + `reponds STRICTEMENT {"rien": true}. En cas de doute, reponds {"rien": true}.`;
 
 
   let brut = '';
