@@ -156,9 +156,10 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     { type: 'famille', cle: 'belle-fille|prénom',  motif: /ma\s+belle-fille\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'famille', cle: 'beau-père|prénom',     motif: /mon\s+beau-p[eè]re\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'famille', cle: 'belle-mère|prénom',   motif: /ma\s+belle-m[eè]re\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
-        // Famille — états (v3) : « mon père est décédé » → père|état (role = groupe 2, état = groupe 3)
+            // Famille — états (v3) : « mon père est décédé » → père|état (role = groupe 2, état = groupe 3)
+    // NB : pas de \b final — après un accent (é), \b ne matche jamais en JS ; on utilise (?!lettres)
     { type: 'famille', cleDynamique: 'état', groupeValeur: 3,
-      motif: /(mon|ma)\s+(p[eè]re|m[eè]re|femme|mari|fils|fille|fr[eè]re|s[œoe]ur|beau-p[eè]re|belle-m[eè]re)\s+est\s+(d[eé]c[eé]d[eé]e?|malade|hospitalis[eé]e?)\b/i },
+      motif: /(mon|ma)\s+(p[eè]re|m[eè]re|femme|mari|fils|fille|fr[eè]re|s[œoe]ur|beau-p[eè]re|belle-m[eè]re)\s+est\s+(d[eé]c[eé]d[eé]e?|malade|hospitalis[eé]e?)(?![a-zà-ÿ])/i },
     // Famille — quantités (inchangé)
     { type: 'famille', cle: 'enfants',        motif: /j['’ ]ai\s+(\d+)\s*enfants/i },
     { type: 'famille', cle: 'petits-enfants', motif: /j['’ ]ai\s+(\d+)\s*petits-enfants/i },
