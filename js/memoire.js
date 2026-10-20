@@ -168,8 +168,8 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     // → frère:Stéphane|habite (role = groupe 2, Prénom = groupe 3, valeur = groupe 4)
     // NB : regex sensible à la casse (pas de /i) pour EXIGER le prénom en majuscule —
     // c'est la garde intégrée : « mon frère stephane habite... » ne matche pas.
-    { type: 'famille', cleDynamique: 'habite', instance: true, groupeValeur: 4,
-      motif: /(?:[Mm]on|[Mm]a)\s+(fr[eè]re|s[œoe]ur|neveu|ni[eè]ce|oncle|tante|cousin|cousine|fils|fille|ami|amie|coll[eè]gue|voisin|voisine)\s+([A-ZÉÈÀÂÎÔÛ][a-zà-ÿ]+(?:\s+[A-ZÉÈÀÂÎÔÛ][a-zà-ÿ]+)?)\s+[Hh]abite\s+(?:à|a|en|dans)?\s*([^.!?]+)/ }, 
+        { type: 'famille', cleDynamique: 'habite', instance: true, groupeValeur: 4,
+      motif: /([Mm]on|[Mm]a)\s+(fr[eè]re|s[œoe]ur|neveu|ni[eè]ce|oncle|tante|cousin|cousine|fils|fille|ami|amie|coll[eè]gue|voisin|voisine)\s+([A-ZÉÈÀÂÎÔÛ][a-zà-ÿ]+(?:\s+[A-ZÉÈÀÂÎÔÛ][a-zà-ÿ]+)?)\s+[Hh]abite\s+(?:à|a|en|dans)?\s*([^.!?]+)/ },
     // Famille — quantités (inchangé)
     { type: 'famille', cle: 'enfants',        motif: /j['’ ]ai\s+(\d+)\s*enfants/i },
     { type: 'famille', cle: 'petits-enfants', motif: /j['’ ]ai\s+(\d+)\s*petits-enfants/i },
