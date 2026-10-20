@@ -156,8 +156,9 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     { type: 'famille', cle: 'belle-fille|prénom',  motif: /ma\s+belle-fille\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'famille', cle: 'beau-père|prénom',     motif: /mon\s+beau-p[eè]re\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
     { type: 'famille', cle: 'belle-mère|prénom',   motif: /ma\s+belle-m[eè]re\s+(?:s['’ ]appelle|est)\s+([^.!?]+)/i },
-    // Famille — états (v3) : « mon père est décédé » → père|état (le role est capturé, la cle est fabriquée)
-    { type: 'famille', cleDynamique: 'état', motif: /(mon|ma)\s+(p[eè]re|m[eè]re|femme|mari|fils|fille|fr[eè]re|s[œoe]ur|beau-p[eè]re|belle-m[eè]re)\s+est\s+(d[eé]c[eé]d[eé]e?|malade|hospitalis[eé]e?)\b/i },
+        // Famille — états (v3) : « mon père est décédé » → père|état (role = groupe 2, état = groupe 3)
+    { type: 'famille', cleDynamique: 'état', groupeValeur: 3,
+      motif: /(mon|ma)\s+(p[eè]re|m[eè]re|femme|mari|fils|fille|fr[eè]re|s[œoe]ur|beau-p[eè]re|belle-m[eè]re)\s+est\s+(d[eé]c[eé]d[eé]e?|malade|hospitalis[eé]e?)\b/i },
     // Famille — quantités (inchangé)
     { type: 'famille', cle: 'enfants',        motif: /j['’ ]ai\s+(\d+)\s*enfants/i },
     { type: 'famille', cle: 'petits-enfants', motif: /j['’ ]ai\s+(\d+)\s*petits-enfants/i },
@@ -190,7 +191,7 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
   regles.forEach(r => {
     const m = saisie.match(r.motif);
     if (!m) return;
-    const valeur = (m[1] || '').trim().replace(/\s+/g, ' ');
+    const valeur = (m[r.groupeValeur || 1] || '').trim().replace(/\s+/g, ' ');
     if (!valeur || valeur.length < 2) return;
     if (r.exclus && r.exclus.test(valeur)) return;
     // v3 : cle fixe ou cle dynamique (règle état : le role capturé fabrique role|état)
@@ -199,12 +200,10 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     // Garde nom propre (v3 raffinée) : seul l'attribut prénom exige une majuscule ;
     // les clés |état acceptent les minuscules (« décédé », « malade »...)
     if (cle && cle.toLowerCase().endsWith('|prénom') && /^[a-zà-ÿ]/.test(valeur)) return;
-     // Garde nom propre : un lien de famille/relations ne mémorise que des noms (majuscule),
-    // jamais un état (« décédé », « en vie », « malade »...) — même empilé, ce n'est pas mobilisable
-    if ((r.type === 'famille' || r.type === 'relations') && /^[a-zà-ÿ]/.test(valeur)) return;
+     
         const resultat = stockerFait(r.type, cle, valeur);
-    if (resultat === 'apris') log('🔎 Appris automatiquement (' + r.type + ') : ' + r.cle + ' : ' + valeur);
-    else if (resultat === 'maj') log('🔎 Fait mis à jour (' + r.type + ') : ' + r.cle + ' : ' + valeur);
+        if (resultat === 'apris') log('🔎 Appris automatiquement (' + r.type + ') : ' + cle + ' : ' + valeur);
+    else if (resultat === 'maj') log('🔎 Fait mis à jour (' + r.type + ') : ' + cle + ' : ' + valeur);
     if (resultat === 'apris' || resultat === 'maj') auMoinsUn = true;
   });
   if (auMoinsUn) { sauvegarderMemoire(); afficherMemoire(); }
