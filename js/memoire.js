@@ -17,7 +17,11 @@ const CLES_MULTIPLES = ['frère', 'sœur', 'neveu', 'nièce', 'oncle', 'tante', 
 // Le test de multiplicite porte sur le ROLE seul (avant | et :), pas sur la cle entiere.
 // pere|prenom → unique ; frere|prenom → multiple (plusieurs freres) ; frere:Stephane|habite → unique.
 function estCleMultiple(cle) {
-  const role = String(cle).split('|')[0].split(':')[0].trim().toLowerCase();
+  const s = String(cle);
+  // v3 : une clé d'instance (role:Prenom|attribut) est TOUJOURS unique —
+  // c'est l'attribut d'UNE personne identifiée, pas la liste des instances
+  if (s.includes(':')) return false;
+  const role = s.split('|')[0].trim().toLowerCase();
   return CLES_MULTIPLES.includes(role);
 }
 
@@ -160,6 +164,12 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     // NB : pas de \b final — après un accent (é), \b ne matche jamais en JS ; on utilise (?!lettres)
     { type: 'famille', cleDynamique: 'état', groupeValeur: 3,
       motif: /(mon|ma)\s+(p[eè]re|m[eè]re|femme|mari|fils|fille|fr[eè]re|s[œoe]ur|beau-p[eè]re|belle-m[eè]re)\s+est\s+(d[eé]c[eé]d[eé]e?|malade|hospitalis[eé]e?)(?![a-zà-ÿ])/i },
+    // Famille/relations — attributs d'instance (v3) : « mon frère Stéphane habite à Vannes »
+    // → frère:Stéphane|habite (role = groupe 2, Prénom = groupe 3, valeur = groupe 4)
+    // NB : regex sensible à la casse (pas de /i) pour EXIGER le prénom en majuscule —
+    // c'est la garde intégrée : « mon frère stephane habite... » ne matche pas.
+    { type: 'famille', cleDynamique: 'habite', instance: true, groupeValeur: 4,
+      motif: /(?:[Mm]on|[Mm]a)\s+(fr[eè]re|s[œoe]ur|neveu|ni[eè]ce|oncle|tante|cousin|cousine|fils|fille|ami|amie|coll[eè]gue|voisin|voisine)\s+([A-ZÉÈÀÂÎÔÛ][a-zà-ÿ]+(?:\s+[A-ZÉÈÀÂÎÔÛ][a-zà-ÿ]+)?)\s+[Hh]abite\s+(?:à|a|en|dans)?\s*([^.!?]+)/ }, 
     // Famille — quantités (inchangé)
     { type: 'famille', cle: 'enfants',        motif: /j['’ ]ai\s+(\d+)\s*enfants/i },
     { type: 'famille', cle: 'petits-enfants', motif: /j['’ ]ai\s+(\d+)\s*petits-enfants/i },
@@ -196,8 +206,9 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     if (!valeur || valeur.length < 2) return;
     if (r.exclus && r.exclus.test(valeur)) return;
     // v3 : cle fixe ou cle dynamique (règle état : le role capturé fabrique role|état)
-    let cle = r.cle;
-    if (!cle && r.cleDynamique) cle = m[2] + '|' + r.cleDynamique;
+        let cle = r.cle;
+    if (!cle && r.cleDynamique) cle = m[2] + (r.instance ? ':' + m[3] : '') + '|' + r.cleDynamique;
+
     // Garde nom propre (v3 raffinée) : seul l'attribut prénom exige une majuscule ;
     // les clés |état acceptent les minuscules (« décédé », « malade »...)
     if (cle && cle.toLowerCase().endsWith('|prénom') && /^[a-zà-ÿ]/.test(valeur)) return;
