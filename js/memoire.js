@@ -253,6 +253,7 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     + `\"Mon pere est decede\" → cle \"pere|etat\", valeur \"decede\" ; `
     + `\"Mon frere s'appelle Stephane\" → cle \"frere|prenom\", valeur \"Stephane\" ; `
     + `\"Mon frere Stephane habite a Vannes\" → cle \"frere:Stephane|habite\", valeur \"Vannes\" `
+    + `\"Le numero de mon fils Florian est le 06 12 34 56 78\" → cle \"fils:Florian|telephone\", valeur \"06 12 34 56 78\". `
     + `(quand la phrase DESIGNE la personne par son prenom, le prenom va dans la cle apres le role suivi de :). `
     + `Attributs courants : prenom, etat, habite, age, telephone, metier, aime. `
     + `S il n y a aucune information durable sur l utilisateur (question, salutation, opinion passagere, action en cours), `
