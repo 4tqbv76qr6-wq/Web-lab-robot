@@ -12,8 +12,12 @@ const CLES_MULTIPLES = ['frère', 'sœur', 'neveu', 'nièce', 'oncle', 'tante', 
   'ami', 'amie', 'collègue', 'voisin', 'voisine', 'fils', 'fille',
   'habitude', 'aime', 'aime pas', 'adore', 'déteste', 'objectif', 'événement'];
 
+// v3 — cles composees : role|attribut (ex : pere|prenom) ou role:Prenom|attribut (ex : frere:Stephane|habite).
+// Le test de multiplicite porte sur le ROLE seul (avant | et :), pas sur la cle entiere.
+// pere|prenom → unique ; frere|prenom → multiple (plusieurs freres) ; frere:Stephane|habite → unique.
 function estCleMultiple(cle) {
-  return CLES_MULTIPLES.includes(cle.toLowerCase());
+  const role = String(cle).split('|')[0].split(':')[0].trim().toLowerCase();
+  return CLES_MULTIPLES.includes(role);
 }
 
 // Stockage canonique d un fait : gere unique vs multiple, dedupe, met a jour.
