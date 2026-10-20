@@ -2,6 +2,7 @@
 // faits : connaissances structurees (moteur style Labo 2)
 // messages : transcription des dialogues (archive)
 // Format canonique des faits : « cle : valeur » — lisible, injectable.
+// v3 — cles composees : role|prénom (une par attribut), role:Prenom|attribut (une par instance).
 // Cles uniques (une femme, un lieu) : la nouvelle valeur remplace l ancienne.
 // Cles multiples (freres, cousins, amis...) : empilement, anti-doublon cle+valeur.
 const memoire = { faits: [], messages: [] };
@@ -192,10 +193,16 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     const valeur = (m[1] || '').trim().replace(/\s+/g, ' ');
     if (!valeur || valeur.length < 2) return;
     if (r.exclus && r.exclus.test(valeur)) return;
+    // v3 : cle fixe ou cle dynamique (règle état : le role capturé fabrique role|état)
+    let cle = r.cle;
+    if (!cle && r.cleDynamique) cle = m[2] + '|' + r.cleDynamique;
+    // Garde nom propre (v3 raffinée) : seul l'attribut prénom exige une majuscule ;
+    // les clés |état acceptent les minuscules (« décédé », « malade »...)
+    if (cle && cle.toLowerCase().endsWith('|prénom') && /^[a-zà-ÿ]/.test(valeur)) return;
      // Garde nom propre : un lien de famille/relations ne mémorise que des noms (majuscule),
     // jamais un état (« décédé », « en vie », « malade »...) — même empilé, ce n'est pas mobilisable
     if ((r.type === 'famille' || r.type === 'relations') && /^[a-zà-ÿ]/.test(valeur)) return;
-    const resultat = stockerFait(r.type, r.cle, valeur);
+        const resultat = stockerFait(r.type, cle, valeur);
     if (resultat === 'apris') log('🔎 Appris automatiquement (' + r.type + ') : ' + r.cle + ' : ' + valeur);
     else if (resultat === 'maj') log('🔎 Fait mis à jour (' + r.type + ') : ' + r.cle + ' : ' + valeur);
     if (resultat === 'apris' || resultat === 'maj') auMoinsUn = true;
