@@ -245,10 +245,16 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     + `ou type est pris dans [identite, lieu, gout, famille, relations, sante, habitude, travail, objectif, evenement, fait]. `
     + `REGLES STRICTES : `
     + `1) valeur doit contenir SEULEMENT le nom, le prenom ou le fait essentiel, JAMAIS une phrase complete ni de preambule. `
-    + `Exemple : pour "Mon pere s'appelle Ferdinand", reponds {"type": "famille", "cle": "pere", "valeur": "Ferdinand"}. `
+        + `Exemple : pour \"Mon pere s'appelle Ferdinand\", reponds {\"type\": \"famille\", \"cle\": \"pere|prenom\", \"valeur\": \"Ferdinand\"}. `
     + `2) Tout lien de parente (pere, mere, frere, soeur, beau-pere, belle-mere, oncle, tante, cousin, neveu, niece, grand-parent...) `
     + `donne TOUJOURS type "famille". `
-    + `3) cle est le role ou la nature du fait en un ou deux mots (ex : "femme", "habite", "aime", "beau-pere"). `
+    + `3) cle est composee : role|attribut, avec l attribut qui precise la nature du fait. `
+    + `Exemples : \"Mon pere s'appelle Ferdinand\" → cle \"pere|prenom\", valeur \"Ferdinand\" ; `
+    + `\"Mon pere est decede\" → cle \"pere|etat\", valeur \"decede\" ; `
+    + `\"Mon frere s'appelle Stephane\" → cle \"frere|prenom\", valeur \"Stephane\" ; `
+    + `\"Mon frere Stephane habite a Vannes\" → cle \"frere:Stephane|habite\", valeur \"Vannes\" `
+    + `(quand la phrase DESIGNE la personne par son prenom, le prenom va dans la cle apres le role suivi de :). `
+    + `Attributs courants : prenom, etat, habite, age, telephone, metier, aime. `
     + `S il n y a aucune information durable sur l utilisateur (question, salutation, opinion passagere, action en cours), `
     + `reponds STRICTEMENT {"rien": true}. En cas de doute, reponds {"rien": true}.`;
 
@@ -292,9 +298,11 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     const cle = String(extrait.cle || '').trim().replace(/\s+/g, ' ');
     const valeur = String(extrait.valeur || '').trim().replace(/\s+/g, ' ');
     if (cle.length < 2 || valeur.length < 2) return false;
-    // Garde nom propre (miroir de celle des regex) : famille/relations ne mémorise
-    // que des noms (majuscule), jamais un état (« décédé », « malade »...)
-    if ((extrait.type === 'famille' || extrait.type === 'relations') && /^[a-zà-ÿ]/.test(valeur)) return false;
+        // Garde nom propre v3 (miroir de la passe regex) : seul l'attribut prénom exige
+    // une majuscule ; les attributs état, habite... acceptent les minuscules
+    if ((extrait.type === 'famille' || extrait.type === 'relations')
+        && String(extrait.cle || '').toLowerCase().includes('|prenom')
+        && /^[a-zà-ÿ]/.test(valeur)) return false;
     // Stockage canonique (unique vs multiple) : meme gouvernance que les regex
     const resultat = stockerFait(extrait.type, cle, valeur);
     if (resultat === 'apris') log('🔎 Appris — LLM (' + extrait.type + ') : ' + cle + ' : ' + valeur);
