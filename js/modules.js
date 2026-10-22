@@ -68,6 +68,11 @@ const modules = {
           memoriser(f);
           return;
         }
+              // 🔄 Normalisation par paraphrases (paramétrable, Réglages) — avant toute
+        // interprétation : le texte canonique nourrit regex, intentions et LLM
+        const saisieOriginale = saisie;
+        saisie = normaliserParaphrases(saisie);
+        if (saisie !== saisieOriginale) log('🔄 Paraphrase appliquée : « ' + saisie + ' »');
 
         visage.set('pense');
                 // 🧠 Apprentissage hybride : regex (passe 1, gratuite, déterministe)
