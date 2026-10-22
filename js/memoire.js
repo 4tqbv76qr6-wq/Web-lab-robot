@@ -304,6 +304,15 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     if ((extrait.type === 'famille' || extrait.type === 'relations')
         && String(extrait.cle || '').toLowerCase().includes('|prenom')
         && /^[a-zà-ÿ]/.test(valeur)) return false;
+    // Garde instance (miroir) : si la clé désigne une personne par son prénom,
+    // ce prénom doit apparaître TEL QUEL (majuscule) dans la saisie d'origine.
+    // Sinon, le LLM a « normalisé » un prénom minuscule que la passe regex aurait rejeté.
+    const cleRef = String(extrait.cle || '');
+    const posIns = cleRef.indexOf(':');
+    if (posIns >= 0) {
+      const prenomRef = cleRef.slice(posIns + 1, cleRef.indexOf('|')).trim();
+      if (prenomRef && !saisie.includes(prenomRef)) return false;
+    }
     // Stockage canonique (unique vs multiple) : meme gouvernance que les regex
     const resultat = stockerFait(extrait.type, cle, valeur);
     if (resultat === 'apris') log('🔎 Appris — LLM (' + extrait.type + ') : ' + cle + ' : ' + valeur);
