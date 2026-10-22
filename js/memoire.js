@@ -230,7 +230,7 @@ const TYPES_MEMOIRE_AUTORISES = ['identite', 'lieu', 'gout', 'famille', 'relatio
 
 // Pre-filtre bon marche : la phrase parle-t-elle de l utilisateur (1re personne / possessif) ?
 function estInfoPersonnelle(saisie) {
-  return /\b(je\s+(?:suis|m['’ ]appelle|habite|vis|aime|adore|d[eé]teste|pr[eé]f[eè]re|veux|aimerais|travaille|souffre|suis\s+allergique|pars|ai)\b|j'’\b|chaque\s+(?:matin|soir|jour)|tous\s+les\s+(?:matins|soirs|jours)|mon\s+|ma\s+|mes\s+)/i.test(saisie);
+  return /\b(je\s+(?:suis|m['’ ]appelle|habite|vis|aime|adore|d[eé]teste|pr[eé]f[eè]re|veux|aimerais|travaille|souffre|suis\s+allergique|pars|ai)\b|j['’ ]\s*\w|chaque\s+(?:matin|soir|jour)|tous\s+les\s+(?:matins|soirs|jours)|mon\s+|ma\s+|mes\s+)/i.test(saisie);
 }
 
 async function extraireFaitsLLM(saisie) {
@@ -252,7 +252,7 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     + `Exemples : \"Mon pere s'appelle Ferdinand\" → cle \"pere|prenom\", valeur \"Ferdinand\" ; `
     + `\"Mon pere est decede\" → cle \"pere|etat\", valeur \"decede\" ; `
     + `\"Mon frere s'appelle Stephane\" → cle \"frere|prenom\", valeur \"Stephane\" ; `
-    + `\"Mon frere Stephane habite a Vannes\" → cle \"frere:Stephane|habite\", valeur \"Vannes\" `
+        + `\"Mon frere Stephane habite a Vannes\" → cle \"frere:Stephane|habite\", valeur \"Vannes\" ; `
     + `\"Le numero de mon fils Florian est le 06 12 34 56 78\" → cle \"fils:Florian|telephone\", valeur \"06 12 34 56 78\". `
     + `(quand la phrase DESIGNE la personne par son prenom, le prenom va dans la cle apres le role suivi de :). `
     + `Attributs courants : prenom, etat, habite, age, telephone, metier, aime. `
