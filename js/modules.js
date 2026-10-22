@@ -120,7 +120,7 @@ const modules = {
               sujetWiki = null;
             }
 
-              ´if (sujetWiki && sujetWiki.length >= 2) {
+              if (sujetWiki && sujetWiki.length >= 2) {
               try {
                 const w = await obtenirResumeWiki(sujetWiki);
                 if (w) { contexteWiki = w; log('📚 Wikipédia mobilisé : ' + sujetWiki); }
