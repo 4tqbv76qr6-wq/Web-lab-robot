@@ -113,6 +113,13 @@ const modules = {
           }
           if (sujetWiki) {
             sujetWiki = sujetWiki.replace(/[?!.…]+\s*$/, '').trim();
+            // Garde possessif (v3) : « parle-moi de MA famille », « qui est MON père »...
+            // un sujet introduit par un possessif personnel désigne la vie de l'utilisateur,
+            // pas un sujet encyclopédique → pas de Wikipédia (la mémoire s'en charge)
+            if (/^(mon|ma|mes|ton|ta|tes|notre|nos|votre|vos|son|sa|ses)\b/i.test(sujetWiki)) {
+              sujetWiki = null;
+            }
+
             if (sujetWiki.length >= 2) {
               try {
                 const w = await obtenirResumeWiki(sujetWiki);
