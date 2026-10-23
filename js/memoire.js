@@ -399,10 +399,17 @@ function faitsPertinents(question, max) {
   if (/(objectif|veux|projet|labo)/.test(q)) typesVises.push('objectif');
   if (/(anniversaire|vacances|week-end|evenement)/.test(q)) typesVises.push('evenement');
 
-  const scores = memoire.faits.map(f => {
+    const scores = memoire.faits.map(f => {
     const motsF = new Set(normaliser(f.text + ' ' + f.type));
+    // v4 : squelettes phonétiques des mots de la fiche (5+ lettres), pour le fallback
+    const phonoF = new Set([...motsF].filter(m => m.length >= 5).map(phonetiserMot));
     let s = 0;
-    motsQ.forEach(m => { if (motsF.has(m)) s++; });
+    motsQ.forEach(m => {
+      if (motsF.has(m)) s++;
+      // v4 fallback phonétique : « frerre » dans la question mobilise « frère » —
+      // une faute dans la question ne doit jamais faire rater le recall
+      else if (m.length >= 5 && phonoF.has(phonetiserMot(m))) s++;
+    });
     // Bonus : le fait appartient au type vise par la question
     if (typesVises.includes(f.type)) s += 2;
     return { f, s };
