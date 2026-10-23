@@ -56,9 +56,19 @@
         <input type="text" id="setup-nom" placeholder="Ton prénom (ex : Jean-Louis)">
         <input type="text" id="setup-nom-robot" placeholder="Nom du robot">
         <input type="text" id="setup-ville" placeholder="Ville de référence météo (ex : Plouay)">
-                <textarea id="setup-paraphrases" rows="3" placeholder="Paraphrases — une par ligne :&#10;frangin = frère&#10;vit à = habite à"></textarea>
+               
         <button id="btn-setup">Enregistrer</button>
       </div>
+    </section>
+    <section class="card">
+      <h2>🔄 Paraphrases</h2>
+      <p id="paraphrases-info">Ta langue, simplifiée : chaque expression ci-dessous est remplacée automatiquement avant que le robot ne t'interprète.</p>
+      <div class="dialogue-zone">
+        <input type="text" id="para-de" placeholder="Ce que tu dis (ex : frangin)">
+        <input type="text" id="para-vers" placeholder="Ce que le robot comprend (ex : frère)">
+        <button id="btn-para-add">➕ Ajouter</button>
+      </div>
+      <div id="paraphrases-liste"></div>
     </section>
   <section class="card">
   <h2>🧠 Mémoire du robot</h2>
