@@ -193,3 +193,14 @@ footer {
   opacity: 0.5;
   cursor: default;
 }
+/* Carte Paraphrases */
+.para-ligne {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(74, 158, 221, 0.25);
+}
+.para-ligne span:first-child { color: #4ad6a5; font-weight: bold; }
+.para-ligne span:nth-child(3) { color: #4a9edd; }
+.para-ligne button { margin-left: auto; }
