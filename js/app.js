@@ -3,6 +3,9 @@ chargerSetup();
 afficherSetup();
 document.getElementById('btn-setup').addEventListener('click', enregistrerSetup);
 
+// ---- Paraphrases ----
+document.getElementById('btn-para-add').addEventListener('click', ajouterParaphrase);
+afficherParaphrases();
 // ---- Zone de dialogue ----
 const dialogueInput = document.getElementById('dialogue-input');
 const dialogueSend = document.getElementById('dialogue-send');
