@@ -32,21 +32,25 @@ function estCleMultiple(cle) {
 // Stockage canonique d un fait : gere unique vs multiple, dedupe, met a jour.
 // Retourne 'apris' | 'maj' | null (deja -> null).
 // v5 : toute capture d un prenom de famille fait de cette personne la personne en discussion.
+// v5-bis : comparaison CANONIQUE (casse + accents) — « frere:Bruno|habite » (LLM, ASCII)
+// et « frère:Bruno|habite » (regex, accentué) = le MÊME fait, une seule fiche.
 function stockerFait(type, cle, valeur) {
   const texte = cle + ' : ' + valeur;
   const cleMin = cle.toLowerCase();
-  const texteMin = texte.toLowerCase();
+  const canon = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const cleCanon = canon(cle);
+  const texteCanon = canon(texte);
   let resultat = null;
 
   if (estCleMultiple(cleMin)) {
-    if (!memoire.faits.some(f => f.text.toLowerCase() === texteMin)) {
+    if (!memoire.faits.some(f => canon(f.text) === texteCanon)) {
       memoire.faits.push({ type: type, text: texte, date: new Date().toISOString().slice(0, 10) });
       resultat = 'apris';
     }
   } else {
-    const index = memoire.faits.findIndex(f => f.text.toLowerCase().startsWith(cleMin + ' :'));
+    const index = memoire.faits.findIndex(f => canon(f.text.slice(0, f.text.indexOf(' : '))) === cleCanon);
     if (index >= 0) {
-      if (memoire.faits[index].text.toLowerCase() !== texteMin) {
+      if (canon(memoire.faits[index].text) !== texteCanon) {
         memoire.faits[index] = { type: type, text: texte, date: new Date().toISOString().slice(0, 10) };
         resultat = 'maj';
       }
@@ -56,7 +60,7 @@ function stockerFait(type, cle, valeur) {
     }
   }
 
-  // v5 — anaphore : prénom de famille établi → personne en discussion (avec son genre)
+  // v5 — anaphore : prenom de famille etabli → personne en discussion (avec son genre)
   if (resultat && (type === 'famille' || type === 'relations') && /(\|pr[ée]nom)$/.test(cle)) {
     const role = normaliser(cle.split(/[|:]/)[0]).join('');
     const genre = GENRE_ROLE[role] || '?';
@@ -92,7 +96,7 @@ function chargerMemoire() {
 function reinitialiserMemoire() {
   memoire.faits = [];
   memoire.messages = [];
-  jmemoire.personneEnCours = null;
+  memoire.personneEnCours = null;
   localStorage.removeItem(CONFIG.cleMemoire);
   log('🧠 Mémoire effacée.');
 }
