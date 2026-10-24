@@ -77,10 +77,15 @@ const modules = {
         visage.set('pense');
                 // 🧠 Apprentissage hybride : regex (passe 1, gratuite, déterministe)
         // puis LLM (passe 2, seulement si aucune regex n'a matché + pré-filtre 1re personne)
-        const regexAMatche = extraireFaits(saisie);
-        if (!regexAMatche && estInfoPersonnelle(saisie)) {
+                // 🎯 Honnêteté : on trace EXACTEMENT ce qui est stocké ce tour-ci
+        const faitsDuTour = [];
+        const apprisRegex = extraireFaits(saisie);
+        if (apprisRegex.length > 0) faitsDuTour.push(...apprisRegex);
+        // v5 — anaphore : un pronom il/elle ouvre la passe LLM si une personne est en discussion
+        const aPronom = memoire.personneEnCours && /\b(il|elle)\b/i.test(saisie);
+        if (apprisRegex.length === 0 && (estInfoPersonnelle(saisie) || aPronom)) {
           const appris = await extraireFaitsLLM(saisie);
-          if (appris) log('🧠 Extraction LLM mobilisée');
+          if (apris) { log('🧠 Extraction LLM mobilisée'); faitsDuTour.push(apris); }
         }
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
@@ -107,7 +112,7 @@ const modules = {
           && /retienne|m[eé]moris(?:er|e)\s+cette\s+correction/i.test(h[h.length - 2].content)
           && /^(oui|ok|d'accord|dacord|vas-y|bien\s+s[uû]r|volontiers|oui\s+stp)\b/i.test(saisie.trim())) {
           const appris = await extraireFaitsLLM(memoire.correctionEnAttente);
-          if (apris) log('🎓 Correction validée — mémorisée proprement');
+                    if (apris) { log('🎓 Correction validée — mémorisée proprement'); faitsDuTour.push(apris); }
           else { memoriser('correction : ' + memoire.correctionEnAttente.slice(0, 200)); log('🎓 Correction validée (fiche brute)'); }
           memoire.correctionEnAttente = null;
           memoire.correctionProposee = false;
@@ -208,6 +213,14 @@ const modules = {
         const dateHeure = maintenant.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
           + ', ' + maintenant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
         contexteSysteme += '\nNous sommes le ' + dateHeure + '.';
+                // 🎯 Honnêteté structurelle (v5) : le LLM conversationnel connaît l'état RÉEL
+        // de la mémorisation — il confirme le vrai, il ne peut plus inventer le faux
+        if (faitsDuTour.length > 0) {
+          contexteSysteme += '\nCe tour-ci, tu viens de mémoriser dans ta mémoire locale : ' + faitsDuTour.join(' ; ')
+            + '. Confirme-le simplement. Ne pretends PAS avoir mémorisé autre chose.';
+        } else {
+          contexteSysteme += '\nCe tour-ci, AUCUN fait n\'a été mémorisé. Ne pretends PAS avoir mémorisé quoi que ce soit ; si l\'utilisateur t\'a confié une information, dis-lui franchement que tu ne l\'as pas notée et demande-lui de la reformuler (par exemple avec le prénom).';
+        }
         // 🎓 Proposition de mémorisation (v4-bis)
         if (consigneCorrection) contexteSysteme += '\n' + consigneCorrection;
 
