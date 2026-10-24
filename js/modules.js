@@ -84,6 +84,40 @@ const modules = {
         }
         log('💬 Toi : ' + saisie);
         memoire.messages.push({ role: 'user', content: saisie });
+        // 🎓 Apprentissage par correction (v4-bis — le robot propose, l'utilisateur ratifie)
+        // Détection : l'échange précédent = défi de l'utilisateur + autocorrection du robot
+        let consigneCorrection = '';
+        const h = memoire.messages;
+        if (h.length >= 3) {
+          const defiPrec = h[h.length - 3], robotPrec = h[h.length - 2];
+          if (defiPrec?.role === 'user' && robotPrec?.role === 'assistant'
+            && /\b(es[- ]tu\s?(?:s[uû]r|certain)|tu\s+es\s+s[uû]r|c'est\s+faux|tu\s+te\s+trompes)\b/i.test(defiPrec.content)
+            && /\b(d[eé]sol[eé]|confusion|je\s+corrige|correction|en\s+r[ée]alit[ée]|erreur)\b/i.test(robotPrec.content)) {
+            memoire.correctionEnAttente = robotPrec.content;   // le texte corrigé, candidat à mémorisation
+            if (!memoire.correctionProposee) {
+              memoire.correctionProposee = true;
+              consigneCorrection = ' IMPORTANT : ta reponse precedente contenait une autocorrection d une erreur, apres que l utilisateur t ait remis en cause. Termine TA reponse par une seule phrase courte proposant de memoriser la correction definitive, par exemple : « Veux-tu que je retienne que Plouay est dans le Morbihan ? »';
+              log('🎓 Autocorrection détectée — proposition à venir');
+            }
+          }
+        }
+        // « Oui » à la proposition (garde : la réponse précédente du robot CONTIENT la
+        // proposition, sinon un « oui » à autre chose ne pourrait jamais déclencher)
+        if (memoire.correctionEnAttente && h.length >= 2 && h[h.length - 2].role === 'assistant'
+          && /retienne|m[eé]moris(?:er|e)\s+cette\s+correction/i.test(h[h.length - 2].content)
+          && /^(oui|ok|d'accord|dacord|vas-y|bien\s+s[uû]r|volontiers|oui\s+stp)\b/i.test(saisie.trim())) {
+          const appris = await extraireFaitsLLM(memoire.correctionEnAttente);
+          if (apris) log('🎓 Correction validée — mémorisée proprement');
+          else { memoriser('correction : ' + memoire.correctionEnAttente.slice(0, 200)); log('🎓 Correction validée (fiche brute)'); }
+          memoire.correctionEnAttente = null;
+          memoire.correctionProposee = false;
+        }
+        // « Non » → la correction est oubliée, rien ne s'installe
+        if (memoire.correctionEnAttente && /^(non|laisse|oublie|pas\s+n[eé]cessaire)\b/i.test(saisie.trim())) {
+          memoire.correctionEnAttente = null;
+          memoire.correctionProposee = false;
+          log('🎓 Proposition de correction déclinée');
+        }
 
         // Interconnexion météo : la question porte sur le temps → données réelles
         let contexteMeteo = '';
@@ -174,6 +208,8 @@ const modules = {
         const dateHeure = maintenant.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
           + ', ' + maintenant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
         contexteSysteme += '\nNous sommes le ' + dateHeure + '.';
+        // 🎓 Proposition de mémorisation (v4-bis)
+        if (consigneCorrection) contexteSysteme += '\n' + consigneCorrection;
 
         // Construction du contexte de dialogue (3 derniers échanges max)
         const derniers = memoire.messages.slice(-6);
