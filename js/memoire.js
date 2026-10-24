@@ -5,13 +5,17 @@
 // v3 — cles composees : role|prénom (une par attribut), role:Prenom|attribut (une par instance).
 // Cles uniques (une femme, un lieu) : la nouvelle valeur remplace l ancienne.
 // Cles multiples (freres, cousins, amis...) : empilement, anti-doublon cle+valeur.
-const memoire = { faits: [], messages: [] };
+const memoire = { faits: [], messages: [], personneEnCours: null };
 
 // Cles pouvant avoir PLUSIEURS valeurs (on peut avoir plusieurs freres, amis, etc.)
 const CLES_MULTIPLES = ['frère', 'sœur', 'neveu', 'nièce', 'oncle', 'tante', 'cousin', 'cousine',
   'grand-père', 'grand-mère', 'petit-fils', 'petite-fille', 'beau-fils', 'belle-fille',
   'ami', 'amie', 'collègue', 'voisin', 'voisine', 'fils', 'fille',
   'habitude', 'aime', 'aime pas', 'adore', 'déteste', 'objectif', 'événement'];
+
+// v5 — genre des rôles (clés sans accents) : le pronom doit correspondre à la personne
+const GENRE_ROLE = { frere:'m', pere:'m', fils:'m', cousin:'m', ami:'m', oncle:'m', neveu:'m', 'beau-pere':'m', mari:'m', compagnon:'m', 'grand-pere':'m', 'petit-fils':'m', 'beau-fils':'m', collegue:'m', voisin:'m',
+  femme:'f', mere:'f', soeur:'f', fille:'f', cousine:'f', amie:'f', tante:'f', niece:'f', 'belle-mere':'f', compagne:'f', 'grand-mere':'f', 'petite-fille':'f', 'belle-fille':'f', voisine:'f' };
 
 // v3 — cles composees : role|attribut (ex : pere|prenom) ou role:Prenom|attribut (ex : frere:Stephane|habite).
 // Le test de multiplicite porte sur le ROLE seul (avant | et :), pas sur la cle entiere.
@@ -26,33 +30,45 @@ function estCleMultiple(cle) {
 }
 
 // Stockage canonique d un fait : gere unique vs multiple, dedupe, met a jour.
-// Retourne 'apris' | 'maj' | 'deja' | null.
+// Retourne 'apris' | 'maj' | null (deja -> null).
+// v5 : toute capture d un prenom de famille fait de cette personne la personne en discussion.
 function stockerFait(type, cle, valeur) {
   const texte = cle + ' : ' + valeur;
   const cleMin = cle.toLowerCase();
   const texteMin = texte.toLowerCase();
+  let resultat = null;
 
   if (estCleMultiple(cleMin)) {
-    // Cle multiple : empilement, anti-doublon sur cle + valeur
-    const existe = memoire.faits.some(f => f.text.toLowerCase() === texteMin);
-    if (existe) return 'deja';
-    memoire.faits.push({ type: type, text: texte, date: new Date().toISOString().slice(0, 10) });
-    return 'apris';
+    if (!memoire.faits.some(f => f.text.toLowerCase() === texteMin)) {
+      memoire.faits.push({ type: type, text: texte, date: new Date().toISOString().slice(0, 10) });
+      resultat = 'apris';
+    }
+  } else {
+    const index = memoire.faits.findIndex(f => f.text.toLowerCase().startsWith(cleMin + ' :'));
+    if (index >= 0) {
+      if (memoire.faits[index].text.toLowerCase() !== texteMin) {
+        memoire.faits[index] = { type: type, text: texte, date: new Date().toISOString().slice(0, 10) };
+        resultat = 'maj';
+      }
+    } else {
+      memoire.faits.push({ type: type, text: texte, date: new Date().toISOString().slice(0, 10) });
+      resultat = 'apris';
+    }
   }
-  // Cle unique : la nouvelle valeur remplace l ancienne
-  const index = memoire.faits.findIndex(f => f.text.toLowerCase().startsWith(cleMin + ' :'));
-  if (index >= 0) {
-    if (memoire.faits[index].text.toLowerCase() === texteMin) return 'deja';
-    memoire.faits[index] = { type: type, text: texte, date: new Date().toISOString().slice(0, 10) };
-    return 'maj';
+
+  // v5 — anaphore : prénom de famille établi → personne en discussion (avec son genre)
+  if (resultat && (type === 'famille' || type === 'relations') && /(\|pr[ée]nom)$/.test(cle)) {
+    const role = normaliser(cle.split(/[|:]/)[0]).join('');
+    const genre = GENRE_ROLE[role] || '?';
+    memoire.personneEnCours = { prenom: valeur, role: role, genre: genre };
+    log('🧍 Personne en discussion : ' + valeur + (genre === 'm' ? ' (il)' : genre === 'f' ? ' (elle)' : ''));
   }
-  memoire.faits.push({ type: type, text: texte, date: new Date().toISOString().slice(0, 10) });
-  return 'apris';
+  return resultat;
 }
 
 function sauvegarderMemoire() {
   try {
-    localStorage.setItem(CONFIG.cleMemoire, JSON.stringify({ faits: memoire.faits, messages: memoire.messages }));
+        localStorage.setItem(CONFIG.cleMemoire, JSON.stringify({ faits: memoire.faits, messages: memoire.messages, personneEnCours: memoire.personneEnCours || null }));
   } catch (e) {
     log('Erreur sauvegarde mémoire : ' + e.message);
   }
@@ -67,6 +83,7 @@ function chargerMemoire() {
     if (Array.isArray(data)) { memoire.messages = data; return; }
     if (Array.isArray(data.faits)) memoire.faits = data.faits;
     if (Array.isArray(data.messages)) memoire.messages = data.messages;
+    if (data.personneEnCours) memoire.personneEnCours = data.personneEnCours;
   } catch (e) {
     log('Mémoire locale illisible, on repart de zéro.');
   }
@@ -75,6 +92,7 @@ function chargerMemoire() {
 function reinitialiserMemoire() {
   memoire.faits = [];
   memoire.messages = [];
+  jmemoire.personneEnCours = null;
   localStorage.removeItem(CONFIG.cleMemoire);
   log('🧠 Mémoire effacée.');
 }
@@ -198,7 +216,7 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     { type: 'evenement', cle: 'anniversaire', motif: /mon\s+anniversaire\s+est\s+(?:le\s+)?([^.!?]+)/i },
     { type: 'evenement', cle: 'événement',    motif: /je\s+pars\s+(?:en|à|a|au|aux|pour)?\s*([^.!?]+)/i }
   ];
-  let auMoinsUn = false;
+  const captures = [];
   regles.forEach(r => {
     const m = saisie.match(r.motif);
     if (!m) return;
@@ -213,13 +231,15 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     // les clés |état acceptent les minuscules (« décédé », « malade »...)
     if (cle && cle.toLowerCase().endsWith('|prénom') && /^[a-zà-ÿ]/.test(valeur)) return;
      
-        const resultat = stockerFait(r.type, cle, valeur);
-        if (resultat === 'apris') log('🔎 Appris automatiquement (' + r.type + ') : ' + cle + ' : ' + valeur);
+                const resultat = stockerFait(r.type, cle, valeur);
+    if (resultat === 'apris') log('🔎 Appris automatiquement (' + r.type + ') : ' + cle + ' : ' + valeur);
     else if (resultat === 'maj') log('🔎 Fait mis à jour (' + r.type + ') : ' + cle + ' : ' + valeur);
-    if (resultat === 'apris' || resultat === 'maj') auMoinsUn = true;
+    if (resultat === 'apris' || resultat === 'maj') captures.push(cle + ' : ' + valeur); 
   });
-  if (auMoinsUn) { sauvegarderMemoire(); afficherMemoire(); }
-  return auMoinsUn; // indique a l orchestrateur si la passe 1 a capture quelque chose
+
+  if (captures.length > 0) { sauvegarderMemoire(); afficherMemoire(); }
+  return captures; // l orchestrateur sait EXACTEMENT ce qui a ete capture ce tour
+   
 }
 
 // ---- Extraction hybride : passe 2 LLM pour les tournures imprévues ----
@@ -239,6 +259,15 @@ async function extraireFaitsLLM(saisie) {
 if (saisie.includes('?')) return false;
 if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combien|est-ce|dis-moi|tu\s+peux|peux-tu|donne-moi|raconte)\b/i.test(saisie.trim())) return false;
 
+  // v5 — anaphore : la personne en discussion nourrit la consigne (genre exigé)
+  const p = memoire.personneEnCours;
+  const regleAnaphore = p
+    ? `4) ANAPHORE : la personne en discussion est ${p.prenom} (${p.role}, ${p.genre === 'f' ? 'feminin' : 'masculin'}). `
+      + `Un message contenant le pronom ${p.genre === 'f' ? 'ELLE' : 'IL'} sans autre reference parle de cette personne : produis la fiche COMPLETE `
+      + `(ex : « ${p.genre === 'f' ? 'elle' : 'il'} habite a Cherbourg » → {"type": "famille", "cle": "${p.role}:${p.prenom}|habite", "valeur": "Cherbourg"}). `
+      + `Un pronom de l autre genre, ou un referent ambigu → STRICTEMENT {"rien": true}. `
+    : ''; 
+
     const consigne = `Le message suivant vient de l utilisateur et parle de lui en premiere personne. `
     + `Extrait, si present, le fait durable le concernant et reponds STRICTEMENT en JSON sur une seule ligne : `
     + `{"type": "...", "cle": "...", "valeur": "..."} `
@@ -256,6 +285,7 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     + `\"Le numero de mon fils Florian est le 06 12 34 56 78\" → cle \"fils:Florian|telephone\", valeur \"06 12 34 56 78\". `
     + `(quand la phrase DESIGNE la personne par son prenom, le prenom va dans la cle apres le role suivi de :). `
     + `Attributs courants : prenom, etat, habite, age, telephone, metier, aime. `
+    + regleAnaphore 
     + `S il n y a aucune information durable sur l utilisateur (question, salutation, opinion passagere, action en cours), `
     + `reponds STRICTEMENT {"rien": true}. En cas de doute, reponds {"rien": true}.`;
 
@@ -304,14 +334,16 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     if ((extrait.type === 'famille' || extrait.type === 'relations')
         && String(extrait.cle || '').toLowerCase().includes('|prenom')
         && /^[a-zà-ÿ]/.test(valeur)) return false;
-    // Garde instance (miroir) : si la clé désigne une personne par son prénom,
-    // ce prénom doit apparaître TEL QUEL (majuscule) dans la saisie d'origine.
-    // Sinon, le LLM a « normalisé » un prénom minuscule que la passe regex aurait rejeté.
+        // Garde instance (miroir) : le prénom doit apparaître en majuscule dans la saisie
+    // OU être la personne en discussion établie (v5 — l'anaphore « Il habite... »
+    // doit sa preuve à la personneEnCours, pas à la saisie)
     const cleRef = String(extrait.cle || '');
     const posIns = cleRef.indexOf(':');
     if (posIns >= 0) {
       const prenomRef = cleRef.slice(posIns + 1, cleRef.indexOf('|')).trim();
-      if (prenomRef && !saisie.includes(prenomRef)) return false;
+      const legitime = saisie.includes(prenomRef)
+        || (memoire.personneEnCours && memoire.personneEnCours.prenom === prenomRef);
+      if (prenomRef && !legitime) return false;
     }
     // Stockage canonique (unique vs multiple) : meme gouvernance que les regex
     const resultat = stockerFait(extrait.type, cle, valeur);
@@ -320,7 +352,7 @@ if (/^\s*(quel|quelle|quels|quelles|qui|quoi|ou|où|quand|comment|pourquoi|combi
     if (resultat === 'apris' || resultat === 'maj') {
       sauvegarderMemoire();
       afficherMemoire();
-      return true;
+      return cle + ' : ' + valeur; // l'appelant saura EXACTEMENT ce qui a été stocké
     }
     return false; // 'deja' connu
   } catch (e) {
